@@ -1,0 +1,47 @@
+{
+  "name": "ts2typebox",
+  "version": "1.0.0",
+  "description": "Create typebox types based on typescript types",
+  "main": "dist/index.js",
+  "source": "dist/index.js",
+  "bin": {
+    "ts2typebox": "dist/index.js",
+    "ts-to-typebox": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch-ts": "tsc -w",
+    "test": "echo \"no tests yet\"",
+    "semver-patch": "npm version patch -f",
+    "semver-minor": "npm version minor -f",
+    "publish": "npm publish",
+    "start": "node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xddq/ts2typebox.git"
+  },
+  "keywords": [
+    "ts2typebox",
+    "ts-to-typebox",
+    "typescript",
+    "typebox",
+    "ts",
+    "validation",
+    "IO"
+  ],
+  "author": "Pierre Dahmani",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xddq/ts2typebox/issues"
+  },
+  "homepage": "https://github.com/xddq/ts2typebox#readme",
+  "dependencies": {
+    "@sinclair/typebox": "0.25.24",
+    "typescript": "5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "18.15.3",
+    "prettier": "2.8.4"
+  }
+}
