@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import fs from "fs";
 import { TypeScriptToTypeBox } from "./typescript-to-typebox";
 

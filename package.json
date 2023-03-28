@@ -1,6 +1,6 @@
 {
   "name": "ts2typebox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Create typebox types based on typescript types",
   "main": "dist/index.js",
   "source": "dist/index.js",
