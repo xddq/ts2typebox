@@ -1,0 +1,24 @@
+{
+  "configurations": {
+    "run": {
+      "adapter": "vscode-node",
+      "breakpoints": {
+        "exception": {
+          "all": "N",
+          "uncaught": "Y"
+        }
+      },
+      "configuration": {
+        "request": "launch",
+        "protocol": "auto",
+        "stopOnEntry": false,
+        "console": "integratedTerminal",
+        "program": "${workspaceRoot}/src/index.ts",
+        "outFiles": ["${workspaceRoot}/dist/**/*.js"],
+        "env": { "TS_NODE_BASEURL": "./dist" },
+        "runtimeArgs": ["-r", "tsconfig-paths/register"],
+        "cwd": "${workspaceRoot}"
+      }
+    }
+  }
+}

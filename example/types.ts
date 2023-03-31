@@ -1,5 +1,7 @@
 // Arbitrary example types
 
+type Age = number;
+
 export type Address = {
   street: string;
   city: string;
