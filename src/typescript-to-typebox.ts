@@ -1,19 +1,15 @@
 /*--------------------------------------------------------------------------
-
+@sinclair/typebox/codegen
 The MIT License (MIT)
-
 Copyright (c) 2017-2023 Haydn Paterson (sinclair) <haydn.developer@gmail.com>
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +17,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
 ---------------------------------------------------------------------------*/
 
 import { Formatter } from "./formatter";
@@ -33,6 +28,23 @@ import * as ts from "typescript";
 
 /** Generates TypeBox types from TypeScript code */
 export namespace TypeScriptToTypeBox {
+  function isRecursiveType(
+    decl: ts.InterfaceDeclaration | ts.TypeAliasDeclaration
+  ) {
+    function find(
+      decl: ts.InterfaceDeclaration | ts.TypeAliasDeclaration,
+      node: ts.Node
+    ): boolean {
+      return (
+        (ts.isTypeReferenceNode(node) &&
+          decl.name.getText() === node.getText()) ||
+        node.getChildren().some((node) => find(decl, node))
+      );
+    }
+    return ts.isTypeAliasDeclaration(decl)
+      ? [decl.type].some((node) => find(decl, node))
+      : decl.members.some((node) => find(decl, node));
+  }
   function isReadonlyProperty(node: ts.PropertySignature): boolean {
     return (
       node.modifiers !== undefined &&
@@ -143,6 +155,10 @@ export namespace TypeScriptToTypeBox {
     node: ts.InterfaceDeclaration
   ): IterableIterator<string> {
     useImports = true;
+    const heritage =
+      node.heritageClauses !== undefined
+        ? node.heritageClauses.flatMap((node) => Collect(node))
+        : [];
     if (node.typeParameters) {
       useGenerics = true;
       const exports = isExport(node) ? "export " : "";
@@ -157,13 +173,27 @@ export namespace TypeScriptToTypeBox {
         .join(", ");
       const members = node.members.map((member) => Collect(member)).join(",\n");
       const staticDeclaration = `${exports}type ${node.name.getText()}<${constraints}> = Static<ReturnType<typeof ${node.name.getText()}<${names}>>>`;
-      const typeDeclaration = `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => Type.Object({\n${members}\n})`;
+      const rawTypeExpression = isRecursiveType(node)
+        ? `Type.Recursive(${node.name.getText()} => Type.Object({\n${members}\n}))`
+        : `Type.Object({\n${members}\n})`;
+      const typeExpression =
+        heritage.length === 0
+          ? rawTypeExpression
+          : `Type.Intersect([${heritage.join(", ")}, ${rawTypeExpression}])`;
+      const typeDeclaration = `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => ${typeExpression}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     } else {
       const exports = isExport(node) ? "export " : "";
       const members = node.members.map((member) => Collect(member)).join(",\n");
       const staticDeclaration = `${exports}type ${node.name.getText()} = Static<typeof ${node.name.getText()}>`;
-      const typeDeclaration = `${exports}const ${node.name.getText()} = Type.Object({\n${members}\n})`;
+      const rawTypeExpression = isRecursiveType(node)
+        ? `Type.Recursive(${node.name.getText()} => Type.Object({\n${members}\n}))`
+        : `Type.Object({\n${members}\n})`;
+      const typeExpression =
+        heritage.length === 0
+          ? rawTypeExpression
+          : `Type.Intersect([${heritage.join(", ")}, ${rawTypeExpression}])`;
+      const typeDeclaration = `${exports}const ${node.name.getText()} = ${typeExpression}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     }
   }
@@ -185,15 +215,37 @@ export namespace TypeScriptToTypeBox {
         .join(", ");
       const type = Collect(node.type);
       const staticDeclaration = `${exports}type ${node.name.getText()}<${constraints}> = Static<ReturnType<typeof ${node.name.getText()}<${names}>>>`;
-      const typeDeclaration = `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => ${type}`;
+      const typeDeclaration = isRecursiveType(node)
+        ? `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => Type.Recursive(${node.name.getText()} => ${type})`
+        : `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => ${type}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     } else {
       const exports = isExport(node) ? "export " : "";
       const type = Collect(node.type);
       const staticDeclaration = `${exports}type ${node.name.getText()} = Static<typeof ${node.name.getText()}>`;
-      const typeDeclaration = `${exports}const ${node.name.getText()} = ${type}`;
+      const typeDeclaration = isRecursiveType(node)
+        ? `${exports}const ${node.name.getText()} = Type.Recursive(${node.name.getText()} => ${type})`
+        : `${exports}const ${node.name.getText()} = ${type}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     }
+  }
+  function* HeritageClause(node: ts.HeritageClause): IterableIterator<string> {
+    const types = node.types.map((node) => Collect(node));
+    if (types.length === 1) return yield types[0];
+    yield `Type.Intersect([${types.join(", ")}])`;
+  }
+  function* ExpressionWithTypeArguments(
+    node: ts.ExpressionWithTypeArguments
+  ): IterableIterator<string> {
+    const name = Collect(node.expression);
+    const typeArguments =
+      node.typeArguments === undefined
+        ? []
+        : node.typeArguments.map((node) => Collect(node));
+    // todo: default type argument (resolve `= number` from `type Foo<T = number>`)
+    return yield typeArguments.length === 0
+      ? `${name}`
+      : `${name}(${typeArguments.join(", ")})`;
   }
   function* TypeParameterDeclaration(
     node: ts.TypeParameterDeclaration
@@ -337,6 +389,10 @@ export namespace TypeScriptToTypeBox {
       return yield* UnionTypeNode(node);
     } else if (ts.isTypeOperatorNode(node)) {
       return yield* TypeOperatorNode(node);
+    } else if (ts.isHeritageClause(node)) {
+      return yield* HeritageClause(node);
+    } else if (ts.isExpressionWithTypeArguments(node)) {
+      return yield* ExpressionWithTypeArguments(node);
     } else if (ts.isTypeParameterDeclaration(node)) {
       return yield* TypeParameterDeclaration(node);
     } else if (ts.isParenthesizedTypeNode(node)) {
@@ -349,12 +405,16 @@ export namespace TypeScriptToTypeBox {
       return yield* ClassDeclaration(node);
     } else if (ts.isConditionalTypeNode(node)) {
       return yield* ConditionalTypeNode(node);
+    } else if (ts.isIdentifier(node)) {
+      return yield node.getText();
     } else if (node.kind === ts.SyntaxKind.ExportKeyword) {
       return yield `export`;
     } else if (node.kind === ts.SyntaxKind.KeyOfKeyword) {
       return yield `Type.KeyOf()`;
     } else if (node.kind === ts.SyntaxKind.NumberKeyword) {
       return yield `Type.Number()`;
+    } else if (node.kind === ts.SyntaxKind.BigIntKeyword) {
+      return yield `Type.BigInt()`;
     } else if (node.kind === ts.SyntaxKind.StringKeyword) {
       return yield `Type.String()`;
     } else if (node.kind === ts.SyntaxKind.BooleanKeyword) {
