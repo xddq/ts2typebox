@@ -37,7 +37,7 @@
   },
   "homepage": "https://github.com/xddq/ts2typebox#readme",
   "dependencies": {
-    "@sinclair/typebox": "0.25.24",
+    "@sinclair/typebox": "0.26.8",
     "typescript": "5.0.2"
   },
   "devDependencies": {
