@@ -1,6 +1,6 @@
 {
   "name": "ts2typebox",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Create typebox types based on typescript types",
   "main": "dist/index.js",
   "source": "dist/index.js",
@@ -37,7 +37,7 @@
   },
   "homepage": "https://github.com/xddq/ts2typebox#readme",
   "dependencies": {
-    "@sinclair/typebox": "0.25.24",
+    "@sinclair/typebox": "0.26.8",
     "typescript": "5.0.2"
   },
   "devDependencies": {
