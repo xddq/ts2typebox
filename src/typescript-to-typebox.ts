@@ -28,6 +28,10 @@ import * as ts from "typescript";
 
 /** Generates TypeBox types from TypeScript code */
 export namespace TypeScriptToTypeBox {
+  /**
+   * Collecting type defintions of already created/converted types.
+   * These are used to be able to implement indexedAccessTypes.
+   **/
   const alreadyCreatedTypes = new Map<string, string>();
 
   const createASTfromString = (typescriptCode: string) => {
@@ -63,28 +67,26 @@ export namespace TypeScriptToTypeBox {
     return propertyAssignments;
   };
 
-  const getTypeOfIndexedAccesType = (node: ts.Node): string => {
-    // Gets children of IndexedAccessType
-    // src: https://ts-ast-viewer.com/#code/KYDwDg9gTgLgBDAnmYcCCATDVgGddwC8cA3gFBxy4w7AwBcVNAlgHYDmA3GQL7dmhIsBMlSZseXACYipCpSa0YUxuJz4A2gCJqSrQF1eZIA
+  const getTypeForIndexAccessDepth1 = (
+    node: ts.IndexedAccessTypeNode
+  ): string => {
     const [
       typeReferenceNode,
       _openBracketNode,
       literalTypeNode,
       _closeBracketNode,
     ] = node.getChildren();
-    const attribute = literalTypeNode.getText().replaceAll('"', "");
     if (ts.isTypeReferenceNode(typeReferenceNode)) {
-      console.log("expected - typeReferenceNode");
+      const attribute = literalTypeNode.getText().replaceAll('"', "");
       const typeDefinition = getTypeDefinitionForTypeName(
         typeReferenceNode.getText()
       );
       if (typeDefinition === undefined) {
         console.log(
-          "Error in IndexedAccessType. Expected the type that was indexed to already been parsed."
+          "Error in IndexedAccessType. Expected the type that was indexed to already have been parsed."
         );
         return "Error in IndexedAccessType";
       }
-      console.log("typeDefinition: ", typeDefinition);
       const astOfMatchedTypeDefinition = createASTfromString(typeDefinition);
       const attributeTypeMap = getObjectLiteralExpression(
         astOfMatchedTypeDefinition
@@ -92,8 +94,54 @@ export namespace TypeScriptToTypeBox {
       return (
         attributeTypeMap.get(attribute) ?? "IndexedAccessTypeAttributeNotFound"
       );
+    } else {
+      return "Error. Expected first child to be typeReferenceNode.";
     }
-    return "expected first children of indexedAccessTypeNode to be typeReferenceNode";
+  };
+
+  const getTypeForIndexAccessDepth2 = (
+    node: ts.IndexedAccessTypeNode
+  ): string => {
+    const [
+      indexedAccessTypeNode,
+      _openBracketNode,
+      literalTypeNode,
+      _closeBracketNode,
+    ] = node.getChildren();
+    const attribute = literalTypeNode.getText().replaceAll('"', "");
+    if (ts.isIndexedAccessTypeNode(indexedAccessTypeNode)) {
+      const typeDefinition = getTypeForIndexAccessDepth1(indexedAccessTypeNode);
+      console.log(typeDefinition);
+      const astOfMatchedTypeDefinition = createASTfromString(typeDefinition);
+      const attributeTypeMap = getObjectLiteralExpression(
+        astOfMatchedTypeDefinition
+      );
+      return (
+        attributeTypeMap.get(attribute) ?? "IndexedAccessTypeAttributeNotFound"
+      );
+    } else {
+      return "Error. Expected first child to be indexedAccessTypeNode.";
+    }
+  };
+
+  const getTypeForIndexedAccesType = (
+    node: ts.IndexedAccessTypeNode
+  ): string => {
+    /**
+     * When we have indexed access with "depth 1", e.g. type X = Y["a"] the
+     * first children node is of type "TypeReference".
+     *
+     * When we have indexed access with "depth 2", e.g. type X = Y["a"]["b"] the
+     * first children node is of type "IndexedAccessType"
+     **/
+    const [thisNodeDecidesTheCase] = node.getChildren();
+    if (ts.isTypeReferenceNode(thisNodeDecidesTheCase)) {
+      return getTypeForIndexAccessDepth1(node);
+    }
+    if (ts.isIndexedAccessTypeNode(thisNodeDecidesTheCase)) {
+      return getTypeForIndexAccessDepth2(node);
+    }
+    return "Error. Only supporting indexedAccessTypes with depth 1 and depth 2 yet.";
   };
 
   function isRecursiveType(
@@ -515,9 +563,8 @@ export namespace TypeScriptToTypeBox {
         yield* Visit(child);
       }
       return;
-    } else if (node.kind === ts.SyntaxKind.IndexedAccessType) {
-      console.log(node.getText());
-      return yield getTypeOfIndexedAccesType(node);
+    } else if (ts.isIndexedAccessTypeNode(node)) {
+      return yield getTypeForIndexedAccesType(node);
     } else {
       console.log("Unhandled:", ts.SyntaxKind[node.kind]);
       return yield node.getText();
