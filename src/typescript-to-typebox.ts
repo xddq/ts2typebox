@@ -28,6 +28,9 @@ import * as ts from "typescript";
 
 /** Generates TypeBox types from TypeScript code */
 export namespace TypeScriptToTypeBox {
+  //
+  // __INDEXED_ACCESS_TYPES_START__
+  //
   /**
    * Collecting type defintions of already created/converted types.
    * These are used to be able to implement indexedAccessTypes.
@@ -47,13 +50,23 @@ export namespace TypeScriptToTypeBox {
     return alreadyCreatedTypes.get(name);
   };
 
-  const getObjectLiteralExpression = (node: ts.SourceFile) => {
-    const propertyAssignments = new Map<string, string>();
+  /**
+   * Grabs all attributes and their typebox types of given file and puts them
+   * into a map. Expects file to be string of typebox type like:
+   * Type.Object({
+   * a: Type.String(),
+   * b: Type.Number()
+   * })
+   * and the resulting map would be
+   * {a -> "Type.String()", b -> "Type.Number()"}
+   **/
+  const createTypemapOfAttributes = (node: ts.SourceFile) => {
+    const attributeAndTypeboxTypeMap = new Map<string, string>();
     const walkTree = (node: ts.Node) => {
       if (ts.isPropertyAssignment(node)) {
         const [identifierNode, _colonNode, callExpressionNode] =
           node.getChildren();
-        propertyAssignments.set(
+        attributeAndTypeboxTypeMap.set(
           identifierNode.getText(),
           callExpressionNode.getText()
         );
@@ -64,7 +77,7 @@ export namespace TypeScriptToTypeBox {
       }
     };
     walkTree(node);
-    return propertyAssignments;
+    return attributeAndTypeboxTypeMap;
   };
 
   const getTypeForIndexAccessDepth1 = (
@@ -88,7 +101,7 @@ export namespace TypeScriptToTypeBox {
         return "Error in IndexedAccessType";
       }
       const astOfMatchedTypeDefinition = createASTfromString(typeDefinition);
-      const attributeTypeMap = getObjectLiteralExpression(
+      const attributeTypeMap = createTypemapOfAttributes(
         astOfMatchedTypeDefinition
       );
       return (
@@ -113,7 +126,7 @@ export namespace TypeScriptToTypeBox {
       const typeDefinition = getTypeForIndexAccessDepth1(indexedAccessTypeNode);
       console.log(typeDefinition);
       const astOfMatchedTypeDefinition = createASTfromString(typeDefinition);
-      const attributeTypeMap = getObjectLiteralExpression(
+      const attributeTypeMap = createTypemapOfAttributes(
         astOfMatchedTypeDefinition
       );
       return (
@@ -143,6 +156,9 @@ export namespace TypeScriptToTypeBox {
     }
     return "Error. Only supporting indexedAccessTypes with depth 1 and depth 2 yet.";
   };
+  //
+  // __INDEXED_ACCESS_TYPES_END__
+  //
 
   function isRecursiveType(
     decl: ts.InterfaceDeclaration | ts.TypeAliasDeclaration
