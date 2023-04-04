@@ -28,6 +28,137 @@ import * as ts from "typescript";
 
 /** Generates TypeBox types from TypeScript code */
 export namespace TypeScriptToTypeBox {
+  //
+  // __INDEXED_ACCESS_TYPES_START__
+  //
+  /**
+   * Collecting type defintions of already created/converted types.
+   * These are used to be able to implement indexedAccessTypes.
+   **/
+  const alreadyCreatedTypes = new Map<string, string>();
+
+  const createASTfromString = (typescriptCode: string) => {
+    return ts.createSourceFile(
+      "indexedAccessType.ts", // filePath
+      typescriptCode, // fileText
+      ts.ScriptTarget.Latest, // scriptTarget
+      true // setParentNodes -- sets the `parent` property
+    );
+  };
+
+  const getTypeDefinitionForTypeName = (name: string) => {
+    return alreadyCreatedTypes.get(name);
+  };
+
+  /**
+   * Grabs all attributes and their typebox types of given file and puts them
+   * into a map. Expects file to be string of typebox type like:
+   * Type.Object({
+   * a: Type.String(),
+   * b: Type.Number()
+   * })
+   * and the resulting map would be
+   * {a -> "Type.String()", b -> "Type.Number()"}
+   **/
+  const createTypemapOfAttributes = (node: ts.SourceFile) => {
+    const attributeAndTypeboxTypeMap = new Map<string, string>();
+    const walkTree = (node: ts.Node) => {
+      if (ts.isPropertyAssignment(node)) {
+        const [identifierNode, _colonNode, callExpressionNode] =
+          node.getChildren();
+        attributeAndTypeboxTypeMap.set(
+          identifierNode.getText(),
+          callExpressionNode.getText()
+        );
+        return;
+      }
+      for (const child of node.getChildren()) {
+        walkTree(child);
+      }
+    };
+    walkTree(node);
+    return attributeAndTypeboxTypeMap;
+  };
+
+  const getTypeForIndexAccessDepth1 = (
+    node: ts.IndexedAccessTypeNode
+  ): string => {
+    const [
+      typeReferenceNode,
+      _openBracketNode,
+      literalTypeNode,
+      _closeBracketNode,
+    ] = node.getChildren();
+    if (ts.isTypeReferenceNode(typeReferenceNode)) {
+      const attribute = literalTypeNode.getText().replaceAll('"', "");
+      const typeDefinition = getTypeDefinitionForTypeName(
+        typeReferenceNode.getText()
+      );
+      if (typeDefinition === undefined) {
+        console.log(
+          "Error in IndexedAccessType. Expected the type that was indexed to already have been parsed."
+        );
+        return "Error in IndexedAccessType";
+      }
+      const astOfMatchedTypeDefinition = createASTfromString(typeDefinition);
+      const attributeTypeMap = createTypemapOfAttributes(
+        astOfMatchedTypeDefinition
+      );
+      return (
+        attributeTypeMap.get(attribute) ?? "IndexedAccessTypeAttributeNotFound"
+      );
+    } else {
+      return "Error. Expected first child to be typeReferenceNode.";
+    }
+  };
+
+  const getTypeForIndexAccessDepth2 = (
+    node: ts.IndexedAccessTypeNode
+  ): string => {
+    const [
+      indexedAccessTypeNode,
+      _openBracketNode,
+      literalTypeNode,
+      _closeBracketNode,
+    ] = node.getChildren();
+    const attribute = literalTypeNode.getText().replaceAll('"', "");
+    if (ts.isIndexedAccessTypeNode(indexedAccessTypeNode)) {
+      const typeDefinition = getTypeForIndexAccessDepth1(indexedAccessTypeNode);
+      const astOfMatchedTypeDefinition = createASTfromString(typeDefinition);
+      const attributeTypeMap = createTypemapOfAttributes(
+        astOfMatchedTypeDefinition
+      );
+      return (
+        attributeTypeMap.get(attribute) ?? "IndexedAccessTypeAttributeNotFound"
+      );
+    } else {
+      return "Error. Expected first child to be indexedAccessTypeNode.";
+    }
+  };
+
+  const getTypeForIndexedAccesType = (
+    node: ts.IndexedAccessTypeNode
+  ): string => {
+    /**
+     * When we have indexed access with "depth 1", e.g. type X = Y["a"] the
+     * first children node is of type "TypeReference".
+     *
+     * When we have indexed access with "depth 2", e.g. type X = Y["a"]["b"] the
+     * first children node is of type "IndexedAccessType"
+     **/
+    const [thisNodeDecidesTheCase] = node.getChildren();
+    if (ts.isTypeReferenceNode(thisNodeDecidesTheCase)) {
+      return getTypeForIndexAccessDepth1(node);
+    }
+    if (ts.isIndexedAccessTypeNode(thisNodeDecidesTheCase)) {
+      return getTypeForIndexAccessDepth2(node);
+    }
+    return "Error. Only supporting indexedAccessTypes with depth 1 and depth 2 yet.";
+  };
+  //
+  // __INDEXED_ACCESS_TYPES_END__
+  //
+
   function isRecursiveType(
     decl: ts.InterfaceDeclaration | ts.TypeAliasDeclaration
   ) {
@@ -194,6 +325,8 @@ export namespace TypeScriptToTypeBox {
           ? rawTypeExpression
           : `Type.Intersect([${heritage.join(", ")}, ${rawTypeExpression}])`;
       const typeDeclaration = `${exports}const ${node.name.getText()} = ${typeExpression}`;
+      // store all types we already have created to enable indexed access types
+      alreadyCreatedTypes.set(node.name.getText(), typeExpression);
       yield `${staticDeclaration}\n${typeDeclaration}`;
     }
   }
@@ -226,6 +359,13 @@ export namespace TypeScriptToTypeBox {
       const typeDeclaration = isRecursiveType(node)
         ? `${exports}const ${node.name.getText()} = Type.Recursive(${node.name.getText()} => ${type})`
         : `${exports}const ${node.name.getText()} = ${type}`;
+      // store all types we already have created to enable indexed access types
+      alreadyCreatedTypes.set(
+        node.name.getText(),
+        isRecursiveType(node)
+          ? `Type.Recursive(${node.name.getText()} => ${type})`
+          : `${type}`
+      );
       yield `${staticDeclaration}\n${typeDeclaration}`;
     }
   }
@@ -438,6 +578,8 @@ export namespace TypeScriptToTypeBox {
         yield* Visit(child);
       }
       return;
+    } else if (ts.isIndexedAccessTypeNode(node)) {
+      return yield getTypeForIndexedAccesType(node);
     } else {
       console.log("Unhandled:", ts.SyntaxKind[node.kind]);
       return yield node.getText();
