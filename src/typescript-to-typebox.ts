@@ -19,7 +19,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ---------------------------------------------------------------------------*/
 
-import { Formatter } from "./formatter";
+import * as prettier from "prettier";
 import * as ts from "typescript";
 
 // --------------------------------------------------------------------------
@@ -610,7 +610,9 @@ export namespace TypeScriptToTypeBox {
         );
     }
     const imports = importStatments.join("\n");
-    const types = Formatter.Format(typeDeclarations);
-    return [imports, "", types].join("\n");
+
+    return prettier.format(imports + "\n\n" + typeDeclarations, {
+      parser: "typescript",
+    });
   }
 }
