@@ -39,6 +39,9 @@ const main = () => {
     -o, --output
        Specifies the relative path to generated file that will contain the
        typebox types. Defaults to "generated-types.ts".
+
+    --output-stdout
+       Does not generate an output file and prints the generated code to stdout instead.
       `);
     process.exit(0);
   }
@@ -51,9 +54,16 @@ const main = () => {
   const resultFormatted = prettier.format(result, {
     parser: "typescript",
   });
+
+  if (args["output-stdout"]) {
+    console.log(resultFormatted);
+    process.exit(0);
+  }
+
   fs.writeFileSync(process.cwd() + `/${args.output}`, resultFormatted, {
     encoding: "utf8",
   });
+  process.exit(0);
 };
 
 main();
