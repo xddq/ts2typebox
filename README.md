@@ -1,6 +1,6 @@
 # ts2typebox
 
-Cli tool to generate typebox types based on typescript types. Simple wrapper for
+Cli tool used to generate typebox types based on typescript types. Simple wrapper for
 the code from creator of [typebox](https://github.com/sinclairzx81/typebox),
 `Haydn Paterson (sinclair) <haydn.developer@gmail.com>`.
 
@@ -15,8 +15,12 @@ the code from creator of [typebox](https://github.com/sinclairzx81/typebox),
 
 ## Usage
 
-- You need a file containing your types in the current working directory that is
-  named `types.ts`. E.g.
+- The cli can be used with `ts2typebox --input <fileName> --output <fileName>`.
+  Can also be used by simply invoking `ts2typebox`. The input defaults to
+  "types.ts" and the output to "generated-types.ts" relative to the current
+  working directory.
+- Example: You need a file containing your types. E.g. `types.ts` in the current working
+  directory which could look like this:
 
 ```
 // Arbitrary example types
@@ -42,8 +46,8 @@ export type Person = {
 ```
 
 - Run `ts2typebox` to generate the according typebox types. The resulting file
-  is named `generated-types.ts` and is created in the current working directory.
-  The output would be:
+  will be named `generated-types.ts` and is created in the current working
+  directory. The output would look like this:
 
 ```
 import { Type, Static } from '@sinclair/typebox'
