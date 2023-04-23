@@ -12,6 +12,7 @@
     "strict": true,
     "sourceMap": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "paths": {
       "@/*": ["./src/*"]
     }

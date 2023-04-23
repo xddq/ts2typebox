@@ -2,6 +2,7 @@
 import fs from "fs";
 import minimist from "minimist";
 import * as prettier from "prettier";
+import packageJson from "../package.json";
 
 import { TypeScriptToTypeBox } from "./typescript-to-typebox";
 
@@ -21,7 +22,7 @@ const main = () => {
   if (args.help) {
     console.log(`
     ts2typebox is a cli tool to generate typebox types based on typescript
-    types. Version: ${process.env.npm_package_version}
+    types. Version: ${packageJson.version}
 
     Usage:
 
