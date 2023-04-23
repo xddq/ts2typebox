@@ -1,6 +1,6 @@
 {
   "name": "ts2typebox",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Create typebox types based on typescript types",
   "main": "dist/src/index.js",
   "source": "dist/src/index.js",
@@ -29,7 +29,9 @@
     "typebox",
     "ts",
     "validation",
-    "IO"
+    "parsing",
+    "IO",
+    "cli"
   ],
   "author": "Pierre Dahmani",
   "license": "MIT",
@@ -38,10 +40,10 @@
   },
   "homepage": "https://github.com/xddq/ts2typebox#readme",
   "dependencies": {
-    "@sinclair/typebox": "0.26.8",
-    "typescript": "5.0.2",
+    "@sinclair/typebox": "0.28.5",
+    "typescript": "5.0.4",
     "prettier": "2.8.4",
-    "minimist": "^1.2.8"
+    "minimist": "1.2.8"
   },
   "devDependencies": {
     "@babel/core": "7.20.12",
