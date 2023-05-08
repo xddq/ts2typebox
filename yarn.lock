@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@sinclair/typebox@0.28.5":
-  version "0.28.5"
-  resolved "https://registry.yarnpkg.com/@sinclair/typebox/-/typebox-0.28.5.tgz#5bb0568c9bca97a1f031c3a30ac625976d22d235"
-  integrity sha512-3BjziLrALI2q+KpSKMwQdHP0MwmBpiu3oH0LM3mr7Aob9xO2z1hbGxjorTH7l5msuevXH7TU7YLt3Qs7U6Iokg==
+"@sinclair/typebox@0.28.9":
+  version "0.28.9"
+  resolved "https://registry.yarnpkg.com/@sinclair/typebox/-/typebox-0.28.9.tgz#594e4e752839868074be70a8cbb35f264de79d07"
+  integrity sha512-m98m37J9CBZ8XinStjpss2ZOW50KG45XB4cAva2NGoQHiGPxhfNL2BzUXYCs6ahXdK7/F1NIjOGh+MPP5dK8Rw==
 
 "@types/minimist@^1.2.2":
   version "1.2.2"
