@@ -1,15 +1,19 @@
 /*--------------------------------------------------------------------------
-@sinclair/typebox/codegen
+
+@typebox/codegen
+
 The MIT License (MIT)
-Copyright (c) 2017-2023 Haydn Paterson (sinclair) <haydn.developer@gmail.com>
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
+
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -17,175 +21,103 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
 ---------------------------------------------------------------------------*/
 
 import * as ts from "typescript";
 
+export class TypeScriptToTypeBoxError extends Error {
+  constructor(public readonly diagnostics: ts.Diagnostic[]) {
+    super("");
+  }
+}
 // --------------------------------------------------------------------------
-// Transform
+// TypeScriptToTypeBox
 // --------------------------------------------------------------------------
-
+export interface TypeScriptToTypeBoxOptions {
+  /**
+   * Setting this to true will ensure all types are exports as const values. This setting is
+   * used by the TypeScriptToTypeBoxModel to gather TypeBox definitions during runtime eval
+   * pass. The default is false
+   */
+  useExportEverything: boolean;
+  /**
+   * Specifies if the output code should specify a default `import` statement. For TypeScript
+   * generated code this is typically desirable, but for Model generated code, the `Type`
+   * build is passed in into scope as a variable. The default is true.
+   */
+  useTypeBoxImport: boolean;
+  /**
+   * Specifies if the output types should include an identifier associated with the assigned
+   * variable name. This is useful for remapping model types to targets, but optional for
+   * for TypeBox which can operate on vanilla JS references. The default is false.
+   */
+  useIdentifiers: boolean;
+}
 /** Generates TypeBox types from TypeScript code */
 export namespace TypeScriptToTypeBox {
-  //
-  // __INDEXED_ACCESS_TYPES_START__
-  //
-  /**
-   * Collecting type defintions of already created/converted types.
-   * These are used to be able to implement indexedAccessTypes.
-   **/
-  const alreadyCreatedTypes = new Map<string, string>();
-
-  const createASTfromString = (typescriptCode: string) => {
-    return ts.createSourceFile(
-      "indexedAccessType.ts", // filePath
-      typescriptCode, // fileText
-      ts.ScriptTarget.Latest, // scriptTarget
-      true // setParentNodes -- sets the `parent` property
+  // ------------------------------------------------------------------------------------------------------------
+  // Transpile Options
+  // ------------------------------------------------------------------------------------------------------------
+  const transpilerOptions: ts.TranspileOptions = {
+    compilerOptions: {
+      strict: true,
+      target: ts.ScriptTarget.ES2022,
+    },
+  };
+  // ------------------------------------------------------------------------------------------------------------
+  // Transpile States
+  // ------------------------------------------------------------------------------------------------------------
+  // (auto) tracked for recursive types and used to associate This type references
+  let recursiveDeclaration:
+    | ts.TypeAliasDeclaration
+    | ts.InterfaceDeclaration
+    | null = null;
+  // (auto) tracked for scoped block level definitions and used to prevent `export` emit when not in global scope.
+  let blockLevel: number = 0;
+  // (auto) tracked for injecting typebox import statements
+  let useImports = false;
+  // (auto) tracked for injecting TSchema import statements
+  let useGenerics = false;
+  // (auto) tracked for cases where composition requires deep clone
+  let useTypeClone = false;
+  // (auto) tracked for each generated type.
+  const typeNames = new Set<string>();
+  // (option) export override to ensure all schematics
+  let useExportsEverything = false;
+  // (option) inject identifiers
+  let useIdentifiers = false;
+  // ------------------------------------------------------------------------------------------------------------
+  // AST Query
+  // ------------------------------------------------------------------------------------------------------------
+  function FindRecursiveParent(
+    decl: ts.InterfaceDeclaration | ts.TypeAliasDeclaration,
+    node: ts.Node
+  ): boolean {
+    return (
+      (ts.isTypeReferenceNode(node) &&
+        decl.name.getText() === node.typeName.getText()) ||
+      node.getChildren().some((node) => FindRecursiveParent(decl, node))
     );
-  };
-
-  const getTypeDefinitionForTypeName = (name: string) => {
-    return alreadyCreatedTypes.get(name);
-  };
-
-  /**
-   * Grabs all attributes and their typebox types of given file and puts them
-   * into a map. Expects file to be string of typebox type like:
-   * Type.Object({
-   * a: Type.String(),
-   * b: Type.Number()
-   * })
-   * and the resulting map would be
-   * {a -> "Type.String()", b -> "Type.Number()"}
-   **/
-  const createTypemapOfAttributes = (node: ts.SourceFile) => {
-    const attributeAndTypeboxTypeMap = new Map<string, string>();
-    const walkTree = (node: ts.Node) => {
-      if (ts.isPropertyAssignment(node)) {
-        const [identifierNode, _colonNode, callExpressionNode] =
-          node.getChildren();
-        attributeAndTypeboxTypeMap.set(
-          identifierNode.getText(),
-          callExpressionNode.getText()
-        );
-        return;
-      }
-      for (const child of node.getChildren()) {
-        walkTree(child);
-      }
-    };
-    walkTree(node);
-    return attributeAndTypeboxTypeMap;
-  };
-
-  const getTypeForIndexAccessDepth1 = (
-    node: ts.IndexedAccessTypeNode
-  ): string => {
-    const [
-      typeReferenceNode,
-      _openBracketNode,
-      literalTypeNode,
-      _closeBracketNode,
-    ] = node.getChildren();
-    if (ts.isTypeReferenceNode(typeReferenceNode)) {
-      const attribute = literalTypeNode.getText().replaceAll('"', "");
-      const typeDefinition = getTypeDefinitionForTypeName(
-        typeReferenceNode.getText()
-      );
-      if (typeDefinition === undefined) {
-        console.log(
-          "Error in IndexedAccessType. Expected the type that was indexed to already have been parsed."
-        );
-        return "Error in IndexedAccessType";
-      }
-      const astOfMatchedTypeDefinition = createASTfromString(typeDefinition);
-      const attributeTypeMap = createTypemapOfAttributes(
-        astOfMatchedTypeDefinition
-      );
-      return (
-        attributeTypeMap.get(attribute) ?? "IndexedAccessTypeAttributeNotFound"
-      );
-    } else {
-      return "Error. Expected first child to be typeReferenceNode.";
-    }
-  };
-
-  const getTypeForIndexAccessDepth2 = (
-    node: ts.IndexedAccessTypeNode
-  ): string => {
-    const [
-      indexedAccessTypeNode,
-      _openBracketNode,
-      literalTypeNode,
-      _closeBracketNode,
-    ] = node.getChildren();
-    const attribute = literalTypeNode.getText().replaceAll('"', "");
-    if (ts.isIndexedAccessTypeNode(indexedAccessTypeNode)) {
-      const typeDefinition = getTypeForIndexAccessDepth1(indexedAccessTypeNode);
-      const astOfMatchedTypeDefinition = createASTfromString(typeDefinition);
-      const attributeTypeMap = createTypemapOfAttributes(
-        astOfMatchedTypeDefinition
-      );
-      return (
-        attributeTypeMap.get(attribute) ?? "IndexedAccessTypeAttributeNotFound"
-      );
-    } else {
-      return "Error. Expected first child to be indexedAccessTypeNode.";
-    }
-  };
-
-  const getTypeForIndexedAccesType = (
-    node: ts.IndexedAccessTypeNode
-  ): string => {
-    /**
-     * When we have indexed access with "depth 1", e.g. type X = Y["a"] the
-     * first children node is of type "TypeReference".
-     *
-     * When we have indexed access with "depth 2", e.g. type X = Y["a"]["b"] the
-     * first children node is of type "IndexedAccessType"
-     **/
-    const [thisNodeDecidesTheCase] = node.getChildren();
-    if (ts.isTypeReferenceNode(thisNodeDecidesTheCase)) {
-      return getTypeForIndexAccessDepth1(node);
-    }
-    if (ts.isIndexedAccessTypeNode(thisNodeDecidesTheCase)) {
-      return getTypeForIndexAccessDepth2(node);
-    }
-    return "Error. Only supporting indexedAccessTypes with depth 1 and depth 2 yet.";
-  };
-  //
-  // __INDEXED_ACCESS_TYPES_END__
-  //
-
-  function isRecursiveType(
+  }
+  function IsRecursiveType(
     decl: ts.InterfaceDeclaration | ts.TypeAliasDeclaration
   ) {
-    function find(
-      decl: ts.InterfaceDeclaration | ts.TypeAliasDeclaration,
-      node: ts.Node
-    ): boolean {
-      return (
-        (ts.isTypeReferenceNode(node) &&
-          decl.name.getText() === node.getText()) ||
-        node.getChildren().some((node) => find(decl, node))
-      );
-    }
     return ts.isTypeAliasDeclaration(decl)
-      ? [decl.type].some((node) => find(decl, node))
-      : decl.members.some((node) => find(decl, node));
+      ? [decl.type].some((node) => FindRecursiveParent(decl, node))
+      : decl.members.some((node) => FindRecursiveParent(decl, node));
   }
-  function isReadonlyProperty(node: ts.PropertySignature): boolean {
+  function IsReadonlyProperty(node: ts.PropertySignature): boolean {
     return (
       node.modifiers !== undefined &&
       node.modifiers.find((modifier) => modifier.getText() === "readonly") !==
         undefined
     );
   }
-  function isOptionalProperty(node: ts.PropertySignature) {
+  function IsOptionalProperty(node: ts.PropertySignature) {
     return node.questionToken !== undefined;
   }
-  function isExport(
+  function IsExport(
     node:
       | ts.InterfaceDeclaration
       | ts.TypeAliasDeclaration
@@ -193,14 +125,54 @@ export namespace TypeScriptToTypeBox {
       | ts.ModuleDeclaration
   ): boolean {
     return (
-      node.modifiers !== undefined &&
-      node.modifiers.find((modifier) => modifier.getText() === "export") !==
-        undefined
+      blockLevel === 0 &&
+      (useExportsEverything ||
+        (node.modifiers !== undefined &&
+          node.modifiers.find((modifier) => modifier.getText() === "export") !==
+            undefined))
     );
   }
-  function isNamespace(node: ts.ModuleDeclaration) {
+  function IsNamespace(node: ts.ModuleDeclaration) {
     return node.flags === ts.NodeFlags.Namespace;
   }
+  // ------------------------------------------------------------------------------------------------------------
+  // Identifiers
+  // ------------------------------------------------------------------------------------------------------------
+  function ResolveIdentifier(
+    node: ts.InterfaceDeclaration | ts.TypeAliasDeclaration
+  ) {
+    function* resolve(node: ts.Node): IterableIterator<string> {
+      if (node.parent) yield* resolve(node.parent);
+      if (ts.isModuleDeclaration(node)) yield node.name.getText();
+    }
+    return [...resolve(node), node.name.getText()].join(".");
+  }
+  // Note: This function is only called when 'useIdentifiers' is true. What we're trying to achieve with
+  // identifier injection is a referential type model over the default inline model. For the purposes of
+  // code generation, we tend to prefer referential types as these can be both inlined or referenced in
+  // the codegen target; and where different targets may have different referential requirements. It
+  // should be possible to implement a more robust injection mechanism however. For review.
+  function InjectIdentifier($id: string, type: string) {
+    if (!useIdentifiers) return type;
+    // indexer type
+    if (type.lastIndexOf("]") === type.length - 1) useTypeClone = true;
+    if (type.lastIndexOf("]") === type.length - 1)
+      return `TypeClone.Clone(${type}, { $id: '${$id}' })`;
+    // referenced type
+    if (type.indexOf("(") === -1) return `Type.Ref(${type}, { $id: '${$id}' })`;
+    if (type.lastIndexOf("()") === type.length - 2)
+      return type.slice(0, type.length - 1) + `{ $id: '${$id}' })`;
+    if (type.lastIndexOf("})") === type.length - 2)
+      return type.slice(0, type.length - 1) + `, { $id: '${$id}' })`;
+    if (type.lastIndexOf("])") === type.length - 2)
+      return type.slice(0, type.length - 1) + `, { $id: '${$id}' })`;
+    if (type.lastIndexOf(")") === type.length - 1)
+      return type.slice(0, type.length - 1) + `, { $id: '${$id}' })`;
+    return type;
+  }
+  // ------------------------------------------------------------------------------------------------------------
+  // Nodes
+  // ------------------------------------------------------------------------------------------------------------
   function* SourceFile(node: ts.SourceFile): IterableIterator<string> {
     for (const next of node.getChildren()) {
       yield* Visit(next);
@@ -210,8 +182,8 @@ export namespace TypeScriptToTypeBox {
     node: ts.PropertySignature
   ): IterableIterator<string> {
     const [readonly, optional] = [
-      isReadonlyProperty(node),
-      isOptionalProperty(node),
+      IsReadonlyProperty(node),
+      IsOptionalProperty(node),
     ];
     const type = Collect(node.type);
     if (readonly && optional) {
@@ -228,6 +200,14 @@ export namespace TypeScriptToTypeBox {
     const type = Collect(node.elementType);
     yield `Type.Array(${type})`;
   }
+  function* Block(node: ts.Block): IterableIterator<string> {
+    blockLevel += 1;
+    const statments = node.statements
+      .map((statement) => Collect(statement))
+      .join("\n\n");
+    blockLevel -= 1;
+    yield `{\n${statments}\n}`;
+  }
   function* TupleTypeNode(node: ts.TupleTypeNode): IterableIterator<string> {
     const types = node.elements.map((type) => Collect(type)).join(",\n");
     yield `Type.Tuple([\n${types}\n])`;
@@ -235,6 +215,39 @@ export namespace TypeScriptToTypeBox {
   function* UnionTypeNode(node: ts.UnionTypeNode): IterableIterator<string> {
     const types = node.types.map((type) => Collect(type)).join(",\n");
     yield `Type.Union([\n${types}\n])`;
+  }
+  function* MethodSignature(
+    node: ts.MethodSignature
+  ): IterableIterator<string> {
+    const parameters = node.parameters
+      .map((parameter) =>
+        parameter.dotDotDotToken !== undefined
+          ? `...Type.Rest(${Collect(parameter)})`
+          : Collect(parameter)
+      )
+      .join(", ");
+    const returnType =
+      node.type === undefined ? `Type.Unknown()` : Collect(node.type);
+    yield `${node.name.getText()}: Type.Function([${parameters}], ${returnType})`;
+  }
+  // prettier-ignore
+  function* TemplateLiteralTypeNode(node: ts.TemplateLiteralTypeNode) {
+    const collect = node.getChildren().map(node => Collect(node)).join('')
+    yield `Type.TemplateLiteral([${collect.slice(0, collect.length - 2)}])` // can't remove trailing here
+  }
+  // prettier-ignore
+  function* TemplateLiteralTypeSpan(node: ts.TemplateLiteralTypeSpan) {
+    const collect = node.getChildren().map(node => Collect(node)).join(', ')
+    if (collect.length > 0) yield `${collect}`
+  }
+  function* TemplateHead(node: ts.TemplateHead) {
+    if (node.text.length > 0) yield `Type.Literal('${node.text}'), `;
+  }
+  function* TemplateMiddle(node: ts.TemplateMiddle) {
+    if (node.text.length > 0) yield `Type.Literal('${node.text}'), `;
+  }
+  function* TemplateTail(node: ts.TemplateTail) {
+    if (node.text.length > 0) yield `Type.Literal('${node.text}'), `;
   }
   function* IntersectionTypeNode(
     node: ts.IntersectionTypeNode
@@ -249,6 +262,9 @@ export namespace TypeScriptToTypeBox {
       const type = Collect(node.type);
       yield `Type.KeyOf(${type})`;
     }
+    if (node.operator === ts.SyntaxKind.ReadonlyKeyword) {
+      yield Collect(node.type);
+    }
   }
   function* Parameter(node: ts.ParameterDeclaration): IterableIterator<string> {
     yield Collect(node.type);
@@ -257,7 +273,11 @@ export namespace TypeScriptToTypeBox {
     node: ts.FunctionTypeNode
   ): IterableIterator<string> {
     const parameters = node.parameters
-      .map((param) => Collect(param))
+      .map((parameter) =>
+        parameter.dotDotDotToken !== undefined
+          ? `...Type.Rest(${Collect(parameter)})`
+          : Collect(parameter)
+      )
       .join(", ");
     const returns = Collect(node.type);
     yield `Type.Function([${parameters}], ${returns})`;
@@ -274,24 +294,55 @@ export namespace TypeScriptToTypeBox {
   function* EnumDeclaration(
     node: ts.EnumDeclaration
   ): IterableIterator<string> {
-    const exports = isExport(node) ? "export " : "";
-    const name = node.name.getText();
+    useImports = true;
+    const exports = IsExport(node) ? "export " : "";
     const members = node.members.map((member) => member.getText()).join(", ");
-    const enumType = `${exports}enum ${name}Enum { ${members} }`;
-    const type = `${exports}const ${name} = Type.Enum(${name}Enum)`;
+    const enumType = `${exports}enum ${node.name.getText()}Enum { ${members} }`;
+    const type = `${exports}const ${node.name.getText()} = Type.Enum(${node.name.getText()}Enum)`;
     yield [enumType, "", type].join("\n");
+    typeNames.add(node.name.getText());
+  }
+  function PropertiesFromTypeElementArray(
+    members: ts.NodeArray<ts.TypeElement>
+  ): string {
+    const properties = members.filter(
+      (member) => !ts.isIndexSignatureDeclaration(member)
+    );
+    const indexers = members.filter((member) =>
+      ts.isIndexSignatureDeclaration(member)
+    );
+    const propertyCollect = properties
+      .map((property) => Collect(property))
+      .join(",\n");
+    const indexer =
+      indexers.length > 0 ? Collect(indexers[indexers.length - 1]) : "";
+    if (properties.length === 0 && indexer.length > 0) {
+      return `{},\n{\nadditionalProperties: ${indexer}\n }`;
+    } else if (properties.length > 0 && indexer.length > 0) {
+      return `{\n${propertyCollect}\n},\n{\nadditionalProperties: ${indexer}\n }`;
+    } else {
+      return `{\n${propertyCollect}\n}`;
+    }
+  }
+  function* TypeLiteralNode(
+    node: ts.TypeLiteralNode
+  ): IterableIterator<string> {
+    const members = PropertiesFromTypeElementArray(node.members);
+    yield* `Type.Object(${members})`;
   }
   function* InterfaceDeclaration(
     node: ts.InterfaceDeclaration
   ): IterableIterator<string> {
     useImports = true;
+    const isRecursiveType = IsRecursiveType(node);
+    if (isRecursiveType) recursiveDeclaration = node;
     const heritage =
       node.heritageClauses !== undefined
         ? node.heritageClauses.flatMap((node) => Collect(node))
         : [];
     if (node.typeParameters) {
       useGenerics = true;
-      const exports = isExport(node) ? "export " : "";
+      const exports = IsExport(node) ? "export " : "";
       const constraints = node.typeParameters
         .map((param) => `${Collect(param)} extends TSchema`)
         .join(", ");
@@ -301,41 +352,45 @@ export namespace TypeScriptToTypeBox {
       const names = node.typeParameters
         .map((param) => `${Collect(param)}`)
         .join(", ");
-      const members = node.members.map((member) => Collect(member)).join(",\n");
+      const members = PropertiesFromTypeElementArray(node.members);
       const staticDeclaration = `${exports}type ${node.name.getText()}<${constraints}> = Static<ReturnType<typeof ${node.name.getText()}<${names}>>>`;
-      const rawTypeExpression = isRecursiveType(node)
-        ? `Type.Recursive(${node.name.getText()} => Type.Object({\n${members}\n}))`
-        : `Type.Object({\n${members}\n})`;
+      const rawTypeExpression = IsRecursiveType(node)
+        ? `Type.Recursive(This => Type.Object(${members}))`
+        : `Type.Object(${members})`;
       const typeExpression =
         heritage.length === 0
           ? rawTypeExpression
           : `Type.Intersect([${heritage.join(", ")}, ${rawTypeExpression}])`;
-      const typeDeclaration = `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => ${typeExpression}`;
+      const type = InjectIdentifier(ResolveIdentifier(node), typeExpression);
+      const typeDeclaration = `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => ${type}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     } else {
-      const exports = isExport(node) ? "export " : "";
-      const members = node.members.map((member) => Collect(member)).join(",\n");
+      const exports = IsExport(node) ? "export " : "";
+      const members = PropertiesFromTypeElementArray(node.members);
       const staticDeclaration = `${exports}type ${node.name.getText()} = Static<typeof ${node.name.getText()}>`;
-      const rawTypeExpression = isRecursiveType(node)
-        ? `Type.Recursive(${node.name.getText()} => Type.Object({\n${members}\n}))`
-        : `Type.Object({\n${members}\n})`;
+      const rawTypeExpression = IsRecursiveType(node)
+        ? `Type.Recursive(This => Type.Object(${members}))`
+        : `Type.Object(${members})`;
       const typeExpression =
         heritage.length === 0
           ? rawTypeExpression
           : `Type.Intersect([${heritage.join(", ")}, ${rawTypeExpression}])`;
-      const typeDeclaration = `${exports}const ${node.name.getText()} = ${typeExpression}`;
-      // store all types we already have created to enable indexed access types
-      alreadyCreatedTypes.set(node.name.getText(), typeExpression);
+      const type = InjectIdentifier(ResolveIdentifier(node), typeExpression);
+      const typeDeclaration = `${exports}const ${node.name.getText()} = ${type}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     }
+    typeNames.add(node.name.getText());
+    recursiveDeclaration = null;
   }
   function* TypeAliasDeclaration(
     node: ts.TypeAliasDeclaration
   ): IterableIterator<string> {
     useImports = true;
+    const isRecursiveType = IsRecursiveType(node);
+    if (isRecursiveType) recursiveDeclaration = node;
     if (node.typeParameters) {
       useGenerics = true;
-      const exports = isExport(node) ? "export " : "";
+      const exports = IsExport(node) ? "export " : "";
       const constraints = node.typeParameters
         .map((param) => `${Collect(param)} extends TSchema`)
         .join(", ");
@@ -345,33 +400,39 @@ export namespace TypeScriptToTypeBox {
       const names = node.typeParameters
         .map((param) => Collect(param))
         .join(", ");
-      const type = Collect(node.type);
+      const type_0 = Collect(node.type);
+      const type_1 = isRecursiveType
+        ? `Type.Recursive(This => ${type_0})`
+        : type_0;
+      const type_2 = InjectIdentifier(ResolveIdentifier(node), type_1);
       const staticDeclaration = `${exports}type ${node.name.getText()}<${constraints}> = Static<ReturnType<typeof ${node.name.getText()}<${names}>>>`;
-      const typeDeclaration = isRecursiveType(node)
-        ? `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => Type.Recursive(${node.name.getText()} => ${type})`
-        : `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => ${type}`;
+      const typeDeclaration = `${exports}const ${node.name.getText()} = <${constraints}>(${parameters}) => ${type_2}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     } else {
-      const exports = isExport(node) ? "export " : "";
-      const type = Collect(node.type);
+      const exports = IsExport(node) ? "export " : "";
+      const type_0 = Collect(node.type);
+      const type_1 = isRecursiveType
+        ? `Type.Recursive(This => ${type_0})`
+        : type_0;
+      const type_2 = InjectIdentifier(ResolveIdentifier(node), type_1);
       const staticDeclaration = `${exports}type ${node.name.getText()} = Static<typeof ${node.name.getText()}>`;
-      const typeDeclaration = isRecursiveType(node)
-        ? `${exports}const ${node.name.getText()} = Type.Recursive(${node.name.getText()} => ${type})`
-        : `${exports}const ${node.name.getText()} = ${type}`;
-      // store all types we already have created to enable indexed access types
-      alreadyCreatedTypes.set(
-        node.name.getText(),
-        isRecursiveType(node)
-          ? `Type.Recursive(${node.name.getText()} => ${type})`
-          : `${type}`
-      );
+      const typeDeclaration = `${exports}const ${node.name.getText()} = ${type_2}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     }
+    typeNames.add(node.name.getText());
+    recursiveDeclaration = null;
   }
   function* HeritageClause(node: ts.HeritageClause): IterableIterator<string> {
     const types = node.types.map((node) => Collect(node));
     if (types.length === 1) return yield types[0];
     yield `Type.Intersect([${types.join(", ")}])`;
+  }
+  function* IndexedAccessType(
+    node: ts.IndexedAccessTypeNode
+  ): IterableIterator<string> {
+    const obj = node.objectType.getText();
+    const key = Collect(node.indexType);
+    yield `Type.Index(${obj}, ${key})`;
   }
   function* ExpressionWithTypeArguments(
     node: ts.ExpressionWithTypeArguments
@@ -397,7 +458,7 @@ export namespace TypeScriptToTypeBox {
     yield Collect(node.type);
   }
   function* RestTypeNode(node: ts.RestTypeNode): IterableIterator<string> {
-    yield `Type.Rest()`;
+    yield `...Type.Rest(${node.type.getText()})`;
   }
   function* ConditionalTypeNode(
     node: ts.ConditionalTypeNode
@@ -408,6 +469,12 @@ export namespace TypeScriptToTypeBox {
     const falseType = Collect(node.falseType);
     yield `Type.Extends(${checkType}, ${extendsType}, ${trueType}, ${falseType})`;
   }
+  function* isIndexSignatureDeclaration(node: ts.IndexSignatureDeclaration) {
+    // note: we ignore the key and just return the type. this is a mismatch between
+    // object and record types. Address in TypeBox by unifying validation paths
+    // for objects and record types.
+    yield Collect(node.type);
+  }
   function* TypeReferenceNode(
     node: ts.TypeReferenceNode
   ): IterableIterator<string> {
@@ -415,43 +482,30 @@ export namespace TypeScriptToTypeBox {
     const args = node.typeArguments
       ? `(${node.typeArguments.map((type) => Collect(type)).join(", ")})`
       : "";
-    if (name === "Array") {
-      return yield `Type.Array${args}`;
-    } else if (name === "Record") {
-      return yield `Type.Record${args}`;
-    } else if (name === "Partial") {
-      return yield `Type.Partial${args}`;
-    } else if (name === "Uint8Array") {
-      return yield `Type.Uint8Array()`;
-    } else if (name === "Required") {
-      return yield `Type.Required${args}`;
-    } else if (name === "Omit") {
-      return yield `Type.Omit${args}`;
-    } else if (name === "Pick") {
-      return yield `Type.Pick${args}`;
-    } else if (name === "Promise") {
-      return yield `Type.Promise${args}`;
-    } else if (name === "ReturnType") {
-      return yield `Type.ReturnType${args}`;
-    } else if (name === "InstanceType") {
-      return yield `Type.InstanceType${args}`;
-    } else if (name === "Parameters") {
-      return yield `Type.Parameters${args}`;
-    } else if (name === "ConstructorParameters") {
+    if (name === "Array") return yield `Type.Array${args}`;
+    if (name === "Record") return yield `Type.Record${args}`;
+    if (name === "Partial") return yield `Type.Partial${args}`;
+    if (name === "Uint8Array") return yield `Type.Uint8Array()`;
+    if (name === "Date") return yield `Type.Date()`;
+    if (name === "Required") return yield `Type.Required${args}`;
+    if (name === "Omit") return yield `Type.Omit${args}`;
+    if (name === "Pick") return yield `Type.Pick${args}`;
+    if (name === "Promise") return yield `Type.Promise${args}`;
+    if (name === "ReturnType") return yield `Type.ReturnType${args}`;
+    if (name === "InstanceType") return yield `Type.InstanceType${args}`;
+    if (name === "Parameters") return yield `Type.Parameters${args}`;
+    if (name === "ConstructorParameters")
       return yield `Type.ConstructorParameters${args}`;
-    } else if (name === "Exclude") {
-      return yield `Type.Exclude${args}`;
-    } else if (name === "Extract") {
-      return yield `Type.Extract${args}`;
-    } else {
-      return yield `${name}${args}`;
-    }
-  }
-  function* TypeLiteralNode(
-    node: ts.TypeLiteralNode
-  ): IterableIterator<string> {
-    const members = node.members.map((member) => Collect(member)).join(",\n");
-    yield `Type.Object({\n${members}\n})`;
+    if (name === "Exclude") return yield `Type.Exclude${args}`;
+    if (name === "Extract") return yield `Type.Extract${args}`;
+    if (
+      recursiveDeclaration !== null &&
+      FindRecursiveParent(recursiveDeclaration, node)
+    )
+      return yield `This`;
+    if (typeNames.has(name)) return yield `${name}${args}`;
+    if (name in globalThis) return yield `Type.Never()`;
+    return yield `${name}${args}`;
   }
   function* LiteralTypeNode(
     node: ts.LiteralTypeNode
@@ -463,8 +517,8 @@ export namespace TypeScriptToTypeBox {
   function* ModuleDeclaration(
     node: ts.ModuleDeclaration
   ): IterableIterator<string> {
-    const export_specifier = isExport(node) ? "export " : "";
-    const module_specifier = isNamespace(node) ? "namespace" : "module";
+    const export_specifier = IsExport(node) ? "export " : "";
+    const module_specifier = IsNamespace(node) ? "namespace" : "module";
     yield `${export_specifier}${module_specifier} ${node.name.getText()} {`;
     yield* Visit(node.body);
     yield `}`;
@@ -477,139 +531,126 @@ export namespace TypeScriptToTypeBox {
   function* FunctionDeclaration(
     node: ts.FunctionDeclaration
   ): IterableIterator<string> {
-    yield node.getText();
+    // ignore
   }
   function* ClassDeclaration(
     node: ts.ClassDeclaration
   ): IterableIterator<string> {
-    yield node.getText();
+    // ignore
   }
   function Collect(node: ts.Node | undefined): string {
     return `${[...Visit(node)].join("")}`;
   }
-  function CollectNewLine(node: ts.Node | undefined): string {
-    return [...Visit(node)].join("\n\n");
-  }
   function* Visit(node: ts.Node | undefined): IterableIterator<string> {
     if (node === undefined) return;
-    if (ts.isSourceFile(node)) {
-      return yield* SourceFile(node);
-    } else if (ts.isInterfaceDeclaration(node)) {
-      return yield* InterfaceDeclaration(node);
-    } else if (ts.isTypeAliasDeclaration(node)) {
-      return yield* TypeAliasDeclaration(node);
-    } else if (ts.isParameter(node)) {
-      return yield* Parameter(node);
-    } else if (ts.isFunctionTypeNode(node)) {
-      return yield* FunctionTypeNode(node);
-    } else if (ts.isConstructorTypeNode(node)) {
-      return yield* ConstructorTypeNode(node);
-    } else if (ts.isEnumDeclaration(node)) {
-      return yield* EnumDeclaration(node);
-    } else if (ts.isPropertySignature(node)) {
-      return yield* PropertySignature(node);
-    } else if (ts.isTypeReferenceNode(node)) {
-      return yield* TypeReferenceNode(node);
-    } else if (ts.isTypeLiteralNode(node)) {
-      return yield* TypeLiteralNode(node);
-    } else if (ts.isLiteralTypeNode(node)) {
-      return yield* LiteralTypeNode(node);
-    } else if (ts.isModuleDeclaration(node)) {
-      return yield* ModuleDeclaration(node);
-    } else if (ts.isModuleBlock(node)) {
-      return yield* ModuleBlock(node);
-    } else if (ts.isArrayTypeNode(node)) {
-      return yield* ArrayTypeNode(node);
-    } else if (ts.isTupleTypeNode(node)) {
-      return yield* TupleTypeNode(node);
-    } else if (ts.isIntersectionTypeNode(node)) {
-      return yield* IntersectionTypeNode(node);
-    } else if (ts.isUnionTypeNode(node)) {
-      return yield* UnionTypeNode(node);
-    } else if (ts.isTypeOperatorNode(node)) {
-      return yield* TypeOperatorNode(node);
-    } else if (ts.isHeritageClause(node)) {
-      return yield* HeritageClause(node);
-    } else if (ts.isExpressionWithTypeArguments(node)) {
+    if (ts.isArrayTypeNode(node)) return yield* ArrayTypeNode(node);
+    if (ts.isBlock(node)) return yield* Block(node);
+    if (ts.isClassDeclaration(node)) return yield* ClassDeclaration(node);
+    if (ts.isConditionalTypeNode(node)) return yield* ConditionalTypeNode(node);
+    if (ts.isConstructorTypeNode(node)) return yield* ConstructorTypeNode(node);
+    if (ts.isEnumDeclaration(node)) return yield* EnumDeclaration(node);
+    if (ts.isExpressionWithTypeArguments(node))
       return yield* ExpressionWithTypeArguments(node);
-    } else if (ts.isTypeParameterDeclaration(node)) {
-      return yield* TypeParameterDeclaration(node);
-    } else if (ts.isParenthesizedTypeNode(node)) {
+    if (ts.isFunctionDeclaration(node)) return yield* FunctionDeclaration(node);
+    if (ts.isFunctionTypeNode(node)) return yield* FunctionTypeNode(node);
+    if (ts.isHeritageClause(node)) return yield* HeritageClause(node);
+    if (ts.isIndexedAccessTypeNode(node)) return yield* IndexedAccessType(node);
+    if (ts.isIndexSignatureDeclaration(node))
+      return yield* isIndexSignatureDeclaration(node);
+    if (ts.isInterfaceDeclaration(node))
+      return yield* InterfaceDeclaration(node);
+    if (ts.isLiteralTypeNode(node)) return yield* LiteralTypeNode(node);
+    if (ts.isPropertySignature(node)) return yield* PropertySignature(node);
+    if (ts.isModuleDeclaration(node)) return yield* ModuleDeclaration(node);
+    if (ts.isIdentifier(node)) return yield node.getText();
+    if (ts.isIntersectionTypeNode(node))
+      return yield* IntersectionTypeNode(node);
+    if (ts.isUnionTypeNode(node)) return yield* UnionTypeNode(node);
+    if (ts.isMethodSignature(node)) return yield* MethodSignature(node);
+    if (ts.isModuleBlock(node)) return yield* ModuleBlock(node);
+    if (ts.isParameter(node)) return yield* Parameter(node);
+    if (ts.isParenthesizedTypeNode(node))
       return yield* ParenthesizedTypeNode(node);
-    } else if (ts.isRestTypeNode(node)) {
-      return yield* RestTypeNode(node);
-    } else if (ts.isFunctionDeclaration(node)) {
-      return yield* FunctionDeclaration(node);
-    } else if (ts.isClassDeclaration(node)) {
-      return yield* ClassDeclaration(node);
-    } else if (ts.isConditionalTypeNode(node)) {
-      return yield* ConditionalTypeNode(node);
-    } else if (ts.isIdentifier(node)) {
-      return yield node.getText();
-    } else if (node.kind === ts.SyntaxKind.ExportKeyword) {
-      return yield `export`;
-    } else if (node.kind === ts.SyntaxKind.KeyOfKeyword) {
-      return yield `Type.KeyOf()`;
-    } else if (node.kind === ts.SyntaxKind.NumberKeyword) {
-      return yield `Type.Number()`;
-    } else if (node.kind === ts.SyntaxKind.BigIntKeyword) {
-      return yield `Type.BigInt()`;
-    } else if (node.kind === ts.SyntaxKind.StringKeyword) {
-      return yield `Type.String()`;
-    } else if (node.kind === ts.SyntaxKind.BooleanKeyword) {
+    if (ts.isRestTypeNode(node)) return yield* RestTypeNode(node);
+    if (ts.isTupleTypeNode(node)) return yield* TupleTypeNode(node);
+    if (ts.isTemplateLiteralTypeNode(node))
+      return yield* TemplateLiteralTypeNode(node);
+    if (ts.isTemplateLiteralTypeSpan(node))
+      return yield* TemplateLiteralTypeSpan(node);
+    if (ts.isTemplateHead(node)) return yield* TemplateHead(node);
+    if (ts.isTemplateMiddle(node)) return yield* TemplateMiddle(node);
+    if (ts.isTemplateTail(node)) return yield* TemplateTail(node);
+    if (ts.isTypeAliasDeclaration(node))
+      return yield* TypeAliasDeclaration(node);
+    if (ts.isTypeLiteralNode(node)) return yield* TypeLiteralNode(node);
+    if (ts.isTypeOperatorNode(node)) return yield* TypeOperatorNode(node);
+    if (ts.isTypeParameterDeclaration(node))
+      return yield* TypeParameterDeclaration(node);
+    if (ts.isTypeReferenceNode(node)) return yield* TypeReferenceNode(node);
+    if (ts.isSourceFile(node)) return yield* SourceFile(node);
+    if (node.kind === ts.SyntaxKind.ExportKeyword) return yield `export`;
+    if (node.kind === ts.SyntaxKind.KeyOfKeyword) return yield `Type.KeyOf()`;
+    if (node.kind === ts.SyntaxKind.NumberKeyword) return yield `Type.Number()`;
+    if (node.kind === ts.SyntaxKind.BigIntKeyword) return yield `Type.BigInt()`;
+    if (node.kind === ts.SyntaxKind.StringKeyword) return yield `Type.String()`;
+    if (node.kind === ts.SyntaxKind.SymbolKeyword) return yield `Type.Symbol()`;
+    if (node.kind === ts.SyntaxKind.BooleanKeyword)
       return yield `Type.Boolean()`;
-    } else if (node.kind === ts.SyntaxKind.UndefinedKeyword) {
+    if (node.kind === ts.SyntaxKind.UndefinedKeyword)
       return yield `Type.Undefined()`;
-    } else if (node.kind === ts.SyntaxKind.UnknownKeyword) {
+    if (node.kind === ts.SyntaxKind.UnknownKeyword)
       return yield `Type.Unknown()`;
-    } else if (node.kind === ts.SyntaxKind.AnyKeyword) {
-      return yield `Type.Any()`;
-    } else if (node.kind === ts.SyntaxKind.NeverKeyword) {
-      return yield `Type.Never()`;
-    } else if (node.kind === ts.SyntaxKind.NullKeyword) {
-      return yield `Type.Null()`;
-    } else if (node.kind === ts.SyntaxKind.VoidKeyword) {
-      return yield `Type.Void()`;
-    } else if (node.kind === ts.SyntaxKind.EndOfFileToken) {
-      return;
-    } else if (node.kind === ts.SyntaxKind.SyntaxList) {
+    if (node.kind === ts.SyntaxKind.AnyKeyword) return yield `Type.Any()`;
+    if (node.kind === ts.SyntaxKind.NeverKeyword) return yield `Type.Never()`;
+    if (node.kind === ts.SyntaxKind.NullKeyword) return yield `Type.Null()`;
+    if (node.kind === ts.SyntaxKind.VoidKeyword) return yield `Type.Void()`;
+    if (node.kind === ts.SyntaxKind.EndOfFileToken) return;
+    if (node.kind === ts.SyntaxKind.SyntaxList) {
       for (const child of node.getChildren()) {
         yield* Visit(child);
       }
       return;
-    } else if (ts.isIndexedAccessTypeNode(node)) {
-      return yield getTypeForIndexedAccesType(node);
-    } else {
-      console.log("Unhandled:", ts.SyntaxKind[node.kind]);
-      return yield node.getText();
     }
+    console.warn("Unhandled:", ts.SyntaxKind[node.kind], node.getText());
   }
-  let useImports = false;
-  let useGenerics = false;
+
+  export function ImportStatement(options: TypeScriptToTypeBoxOptions): string {
+    if (!(useImports && options.useTypeBoxImport)) return "";
+    const imported = ["Type", "Static"];
+    if (useGenerics) imported.push("TSchema");
+    if (useTypeClone) imported.push("TypeClone");
+    return `import { ${imported.join(", ")} } from '@sinclair/typebox'`;
+  }
+
   /** Generates TypeBox types from TypeScript interface and type definitions */
-  export function Generate(typescriptCode: string) {
+  export function Generate(
+    typescriptCode: string,
+    options: TypeScriptToTypeBoxOptions = {
+      useExportEverything: false,
+      useTypeBoxImport: true,
+      useIdentifiers: false,
+    }
+  ) {
+    useExportsEverything = options.useExportEverything;
+    useIdentifiers = options.useIdentifiers;
+    typeNames.clear();
     useImports = false;
     useGenerics = false;
+    useTypeClone = false;
+    blockLevel = 0;
     const source = ts.createSourceFile(
-      "code.ts",
+      "types.ts",
       typescriptCode,
       ts.ScriptTarget.ESNext,
       true
     );
-    const typeDeclarations = CollectNewLine(source);
-    const importStatments: string[] = [];
-    if (useImports) {
-      if (useGenerics)
-        importStatments.push(
-          `import { Type, Static, TSchema } from '@sinclair/typebox'`
-        );
-      if (!useGenerics)
-        importStatments.push(
-          `import { Type, Static } from '@sinclair/typebox'`
-        );
+    const declarations = [...Visit(source)].join("\n\n");
+    const imports = ImportStatement(options);
+    const typescript = [imports, "", declarations].join("\n");
+    const assertion = ts.transpileModule(typescript, transpilerOptions);
+    if (assertion.diagnostics && assertion.diagnostics.length > 0) {
+      throw new TypeScriptToTypeBoxError(assertion.diagnostics);
     }
-    const imports = importStatments.join("\n");
-
-    return imports + "\n\n" + typeDeclarations;
+    return typescript;
   }
 }

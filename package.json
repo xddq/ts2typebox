@@ -1,6 +1,6 @@
 {
   "name": "ts2typebox",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Create typebox types based on typescript types",
   "main": "dist/src/index.js",
   "source": "dist/src/index.js",
@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc",
     "watch-ts": "tsc -w",
-    "test": "node --test --test-reporter spec dist/tests/*.js",
+    "test": "tsc && node --test --test-reporter spec dist/tests/*.js",
     "semver-patch": "npm version patch -f",
     "semver-minor": "npm version minor -f",
     "publish": "npm publish",
