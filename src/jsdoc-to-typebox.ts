@@ -5,7 +5,9 @@
 import * as ts from "typescript";
 import * as doctrine from "doctrine";
 
-const getJsDocStringFromNode = (node: ts.TypeAliasDeclaration): string[] => {
+const getJsDocStringFromNode = (
+  node: ts.TypeAliasDeclaration | ts.PropertySignature
+): string[] => {
   const regexToGetComments = /\/\*\*([\s\S]*?)\*\//;
   const match = node.getFullText().match(regexToGetComments);
   if (match !== undefined && match !== null) {
@@ -13,11 +15,6 @@ const getJsDocStringFromNode = (node: ts.TypeAliasDeclaration): string[] => {
   }
   return [];
 };
-
-// const isNumericOption = (tag: doctrine.Tag): boolean => {
-//   const numericOptions = ['exclusiveMaximum', 'exclusiveMinimum', 'maximum', 'minimum', 'multipleOf']
-//   return numericOptions.includes(tag.title)
-// }
 
 const astTagsFromJsDoc = (jsDocStrings: string): doctrine.Tag[] => {
   const { tags } = doctrine.parse(jsDocStrings, { unwrap: true });
@@ -36,17 +33,12 @@ const generateOptionsForNode = (
   }, {} as Record<any, any>);
 };
 
-// const isNumericNode = (node: ts.TypeAliasDeclaration) => {
-//   const children = node.getChildren()
-//   return children.map((child) => child.kind).includes(ts.SyntaxKind.NumberKeyword)
-// }
-
 /**
  * Generates an object containing valid JSON schema options for the given node
  * based on the given jsdoc ast.
  **/
 export const generateOptionsBasedOnJsDocOfNode = (
-  node: ts.TypeAliasDeclaration
+  node: ts.TypeAliasDeclaration | ts.PropertySignature
 ) => {
   const jsDocStrings = getJsDocStringFromNode(node);
   const tags = jsDocStrings.flatMap(astTagsFromJsDoc);
@@ -55,10 +47,21 @@ export const generateOptionsBasedOnJsDocOfNode = (
       return val;
     }
     if (typeof val === "string") {
-      console.log(val);
+      // bigint
       if (val.endsWith("n")) {
         return BigInt(val);
       }
+      // string
+      // TODO: should we also allow quoted strings via 'test here'?
+      if (val.startsWith('"')) {
+        const valAfterFirstQuote = val.slice(1);
+        // does it contain another (closing) '"'?
+        if (valAfterFirstQuote.includes('"')) {
+          const valInsideQuotes = valAfterFirstQuote.split('"')[0];
+          return valInsideQuotes;
+        }
+      }
+      // number
       return parseInt(val, 10);
     }
     return val;
@@ -76,5 +79,8 @@ export const addOptionsToType = (
   if (Object.keys(options).length === 0) {
     return typeAsString;
   }
+  // TODO: probably add ": SchemaOptions" here. Was mentioned in discussion, but I
+  // did not find the type anywhere? Perhaps I misunderstood something?
+  // src: https://github.com/sinclairzx81/typebox-codegen/discussions/13#discussioncomment-5858910
   return `${typeAsString.slice(0, -1)}${JSON.stringify(options)})`;
 };
