@@ -1,7 +1,8 @@
-import { describe, test } from "node:test";
+import { describe, test, it, mock } from "node:test";
 import assert from "node:assert/strict";
 import * as prettier from "prettier";
 import { TypeScriptToTypeBox } from "../src/typescript-to-typebox";
+import { ts2typebox, Ts2TypeboxOptions } from "../src/index";
 
 const formatWithPrettier = (input: string): string => {
   return prettier.format(input, { parser: "typescript" });
@@ -403,5 +404,12 @@ describe("ts2typebox - Typescript to Typebox", () => {
         `;
       expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
     });
+  });
+});
+describe("programmatic cli usage", () => {
+  it("prints help", () => {
+    mock.method(console, "log", () => {});
+    ts2typebox({ help: "h" });
+    assert.equal(console.log.mock.calls.length, 1);
   });
 });

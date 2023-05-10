@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@types/minimist": "1.2.2",
-    "@types/node": "18.15.3",
+    "@types/node": "18.16.0",
     "@types/prettier": "2.7.2",
     "tsconfig-paths": "4.1.2"
   }

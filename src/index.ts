@@ -6,20 +6,38 @@ import packageJson from "../package.json";
 
 import { TypeScriptToTypeBox } from "./typescript-to-typebox";
 
-const main = () => {
-  const args = minimist(process.argv.slice(2), {
-    alias: {
-      input: "i",
-      output: "o",
-      help: "h",
-    },
-    default: {
-      input: "types.ts",
-      output: "generated-types.ts",
-    },
-  });
+export type Ts2TypeboxOptions = {
+  /**
+   * The file containing the type definitions in the current working directory.
+   * Defaults to "types.ts" if none is given.
+   **/
+  input?: string;
+  /**
+   * The resulting file containing the typebox code in the current working
+   * directory.  Defaults to "generated-types.ts" if none is given.
+   **/
+  output?: string;
+  /**
+   * Makes the function print the help text and quit. Precendence over all other
+   * options.
+   **/
+  help?: "h" | "help";
+  /**
+   * Makes the function print the result to stdout.
+   **/
+  outputStdout?: boolean;
+};
 
-  if (args.help) {
+/**
+ * Use this function for programmatic usage of ts2typebox.
+ **/
+export const ts2typebox = ({
+  input,
+  output,
+  help,
+  outputStdout,
+}: Ts2TypeboxOptions) => {
+  if (help === "h" || help === "help") {
     console.log(`
     ts2typebox is a cli tool to generate typebox types based on typescript
     types. Version: ${packageJson.version}
@@ -44,27 +62,45 @@ const main = () => {
     --output-stdout
        Does not generate an output file and prints the generated code to stdout instead.
       `);
-    process.exit(0);
+    return;
   }
 
-  const fileWithTsTypes = fs.readFileSync(
-    process.cwd() + `/${args.input}`,
-    "utf8"
-  );
+  const fileWithTsTypes = fs.readFileSync(process.cwd() + `/${input}`, "utf8");
   const result = TypeScriptToTypeBox.Generate(fileWithTsTypes);
   const resultFormatted = prettier.format(result, {
     parser: "typescript",
   });
 
-  if (args["output-stdout"]) {
+  if (outputStdout) {
     console.log(resultFormatted);
-    process.exit(0);
+    return;
   }
 
-  fs.writeFileSync(process.cwd() + `/${args.output}`, resultFormatted, {
+  fs.writeFileSync(process.cwd() + `/${output}`, resultFormatted, {
     encoding: "utf8",
   });
-  process.exit(0);
+  return;
+};
+
+const main = () => {
+  const args = minimist(process.argv.slice(2), {
+    alias: {
+      input: "i",
+      output: "o",
+      help: "h",
+    },
+    default: {
+      input: "types.ts",
+      output: "generated-types.ts",
+    },
+  });
+
+  ts2typebox({
+    help: args.help,
+    input: args.input,
+    output: args.output,
+    outputStdout: args["output-stdout"],
+  });
 };
 
 main();
