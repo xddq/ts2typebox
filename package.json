@@ -1,7 +1,7 @@
 {
   "name": "ts2typebox",
-  "version": "1.0.8",
-  "description": "Create typebox types based on typescript types",
+  "version": "1.1.0",
+  "description": "Creates typebox JSON schemas from typescript types",
   "main": "dist/src/index.js",
   "source": "dist/src/index.js",
   "bin": {
@@ -12,9 +12,6 @@
     "build": "tsc",
     "watch-ts": "tsc -w",
     "test": "tsc && node --test --test-reporter spec dist/tests/*.js",
-    "semver-patch": "npm version patch -f",
-    "semver-minor": "npm version minor -f",
-    "publish": "npm publish",
     "start": "node dist/src/index.js"
   },
   "repository": {
@@ -45,9 +42,9 @@
     "typescript": "5.0.4"
   },
   "devDependencies": {
-    "@types/minimist": "^1.2.2",
+    "@types/minimist": "1.2.2",
     "@types/node": "18.15.3",
-    "@types/prettier": "^2.7.2",
+    "@types/prettier": "2.7.2",
     "tsconfig-paths": "4.1.2"
   }
 }

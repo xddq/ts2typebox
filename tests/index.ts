@@ -344,4 +344,65 @@ describe("ts2typebox - Typescript to Typebox", () => {
     `;
     expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
   });
+  describe("jsdoc to JSON schema options", () => {
+    test("type", () => {
+      const generatedTypebox = TypeScriptToTypeBox.Generate(`
+        /**
+         * @minimum 100
+         * @maximum 200
+         * @multipleOf 2
+         * @default 150
+         * @description "it's a number" - strings must be quoted
+         * @foobar "should support unknown props"
+         */
+        type T = number;
+        }
+        `);
+      const expectedResult = `
+        import { Type, Static } from "@sinclair/typebox";
+
+        type T = Static<typeof T>;
+        const T = Type.Number({
+            minimum: 100,
+            maximum: 200,
+            multipleOf: 2,
+            default: 150,
+            description: "it's a number",
+            foobar: "should support unknown props",
+        });
+        `;
+      expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
+    });
+    test("interface", () => {
+      const generatedTypebox = TypeScriptToTypeBox.Generate(`
+        interface T {
+          /**
+           * @minimum 100
+           * @maximum 200
+           * @multipleOf 2
+           * @default 150
+           * @description "it's a number" - strings must be quoted
+           * @foobar "should support unknown props"
+           */
+          x: number;
+        }
+        `);
+      const expectedResult = `
+        import { Type, Static } from "@sinclair/typebox";
+
+        type T = Static<typeof T>;
+        const T = Type.Object({
+          x: Type.Number({
+            minimum: 100,
+            maximum: 200,
+            multipleOf: 2,
+            default: 150,
+            description: "it's a number",
+            foobar: "should support unknown props",
+          }),
+        });
+        `;
+      expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
+    });
+  });
 });
