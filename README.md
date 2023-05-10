@@ -1,8 +1,9 @@
 # ts2typebox
 
-Cli tool used to generate typebox types based on typescript types. Simple wrapper for
-the code from creator of [typebox](https://github.com/sinclairzx81/typebox),
-`Haydn Paterson (sinclair) <haydn.developer@gmail.com>`.
+Cli tool used to generate typebox JSON schemas based on given typescript types.
+Based on the initial codegen code from
+[typebox](https://github.com/sinclairzx81/typebox) by
+[sinclairzx81](https://github.com/sinclairzx81).
 
 ## Installation
 
@@ -10,68 +11,129 @@ the code from creator of [typebox](https://github.com/sinclairzx81/typebox),
 
 ## Use Case
 
-- You want clean runtime validation with type inference and got a typescript
-  project with already existing typescript types.
+- You got a typescript project with types already lying around and are looking
+  for a quick and easy way to get validations and JSON schemas based on them.
+- You prefer leveraging typescript to define your data types and to generate
+  your validators and/or JSON schemas.
 
 ## Usage
 
-- The cli can be used with `ts2typebox --input <fileName> --output <fileName>`.
-  Can also be used by simply invoking `ts2typebox`. The input defaults to
-  "types.ts" and the output to "generated-types.ts" relative to the current
-  working directory.
-- Example: You need a file containing your types. E.g. `types.ts` in the current working
-  directory which could look like this:
+- The cli can be used with `ts2typebox --input <fileName> --output <fileName>`,
+  or by simply running `ts2typebox`. The input defaults to "types.ts" and the
+  output to "generated-types.ts" relative to the current working directory.
 
-```
-// Arbitrary example types
+## Examples
 
-export type Address = {
-  street: string;
-  city: string;
-  state: string;
-  postalCode: string;
-};
-
-export type Contact = {
-  phone: string;
-  email: string;
-};
+```typescript
+//
+// Let's start with a simple type
+//
 
 export type Person = {
-  name: string;
   age: number;
-  address: Address;
-  contact: Contact;
+  name: string;
 };
-```
 
-- Run `ts2typebox` to generate the according typebox types. The resulting file
-  will be named `generated-types.ts` and is created in the current working
-  directory. The output would look like this:
+//
+// Which becomes
+//
 
-```
-import { Type, Static } from '@sinclair/typebox'
+import { Type, Static } from "@sinclair/typebox";
 
-export type Address = Static<typeof Address>
-export const Address = Type.Object({
-  street: Type.String(),
-  city: Type.String(),
-  state: Type.String(),
-  postalCode: Type.String()
-})
-
-export type Contact = Static<typeof Contact>
-export const Contact = Type.Object({
-  phone: Type.String(),
-  email: Type.String()
-})
-
-export type Person = Static<typeof Person>
+export type Person = Static<typeof Person>;
 export const Person = Type.Object({
-  name: Type.String(),
   age: Type.Number(),
-  address: Address,
-  contact: Contact
-})
+  name: Type.String(),
+});
+
+//
+// Similarly, with an interface
+//
+
+export interface IPerson {
+  age: number;
+  name: string;
+}
+
+//
+// Which becomes
+//
+
+import { Type, Static } from "@sinclair/typebox";
+
+export type IPerson = Static<typeof IPerson>;
+export const IPerson = Type.Object({
+  age: Type.Number(),
+  name: Type.String(),
+});
+
+//
+// Let's add some more complicated types. What about unions and intersections?
+//
+
+export type T = { x: number } & { y: number };
+export type U = { x: number } | { y: number };
+
+//
+// Which becomes
+//
+
+import { Type, Static } from "@sinclair/typebox";
+
+export type T = Static<typeof T>;
+export const T = Type.Intersect([
+  Type.Object({
+    x: Type.Number(),
+  }),
+  Type.Object({
+    y: Type.Number(),
+  }),
+]);
+
+export type U = Static<typeof U>;
+export const U = Type.Union([
+  Type.Object({
+    x: Type.Number(),
+  }),
+  Type.Object({
+    y: Type.Number(),
+  }),
+]);
+
+//
+// Nice! But I will need some JSON schema options here and there, which can't be
+// expressed in typescript at all...
+// No worries, simply use jsdoc in your types!
+//
+/**
+* @minimum 100
+* @maximum 200
+* @multipleOf 2
+* @default 150
+* @description "it's a number" - strings must be quoted
+* @foobar "should support unknown props"
+*/
+type T = number;
+}
+
+//
+// Which becomes
+//
+
+import { Type, Static } from "@sinclair/typebox";
+
+type T = Static<typeof T>;
+const T = Type.Number({
+    minimum: 100,
+    maximum: 200,
+    multipleOf: 2,
+    default: 150,
+    description: "it's a number",
+    foobar: "should support unknown props",
+});
 
 ```
+
+To cut it here, all the [standard types](https://github.com/sinclairzx81/typebox#standard-types)
+supported in typebox are supported by ts2typebox. For more examples take a
+look at the tests inside the repo.
