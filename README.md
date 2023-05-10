@@ -106,15 +106,14 @@ export const U = Type.Union([
 // No worries, simply use jsdoc in your types!
 //
 /**
-* @minimum 100
-* @maximum 200
-* @multipleOf 2
-* @default 150
-* @description "it's a number" - strings must be quoted
-* @foobar "should support unknown props"
-*/
-type T = number;
-}
+ * @minimum 100
+ * @maximum 200
+ * @multipleOf 2
+ * @default 150
+ * @description "it's a number" - strings must be quoted
+ * @foobar "should support unknown props"
+ */
+export type T = number;
 
 //
 // Which becomes
@@ -122,16 +121,15 @@ type T = number;
 
 import { Type, Static } from "@sinclair/typebox";
 
-type T = Static<typeof T>;
-const T = Type.Number({
-    minimum: 100,
-    maximum: 200,
-    multipleOf: 2,
-    default: 150,
-    description: "it's a number",
-    foobar: "should support unknown props",
+export type T = Static<typeof T>;
+export const T = Type.Number({
+  minimum: 100,
+  maximum: 200,
+  multipleOf: 2,
+  default: 150,
+  description: "it's a number",
+  foobar: "should support unknown props",
 });
-
 ```
 
 To cut it here, all the [standard types](https://github.com/sinclairzx81/typebox#standard-types)

@@ -356,7 +356,6 @@ describe("ts2typebox - Typescript to Typebox", () => {
          * @foobar "should support unknown props"
          */
         type T = number;
-        }
         `);
       const expectedResult = `
         import { Type, Static } from "@sinclair/typebox";
