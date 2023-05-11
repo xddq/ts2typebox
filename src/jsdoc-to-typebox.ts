@@ -52,7 +52,7 @@ export const generateOptionsBasedOnJsDocOfNode = (
         return BigInt(val);
       }
       // string
-      // TODO: should we also allow quoted strings via 'test here'?
+      // TODO: also allow quoted strings via 'test here'?
       if (val.startsWith('"')) {
         const valAfterFirstQuote = val.slice(1);
         // does it contain another (closing) '"'?

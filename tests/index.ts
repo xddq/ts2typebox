@@ -469,27 +469,6 @@ describe("jsdoc to JSON schema options", () => {
       `;
     expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
   });
-  test("type - number | string", () => {
-    const generatedTypebox = TypeScriptToTypeBox.Generate(`
-      type T = {
-       /**
-       * @minItems 2
-       * @maxItems 4
-       */
-      a: number | string;
-      }
-      `);
-    const expectedResult = `
-      import { Type, Static } from "@sinclair/typebox";
-
-      type T = Static<typeof T>;
-      const T = Type.Object({
-        a: Type.Union([Type.Number(), Type.String()], { minItems: 2, maxItems: 4 }),
-      });
-      `;
-    expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
-  });
-
   // TODO: For now Array<number> is unsupported. Seems to be that Array<number>
   // is treated like it is a "number" instead of Array<number> on the first
   // look. For now ignore it, perhaps check if something is of type
@@ -515,37 +494,79 @@ describe("jsdoc to JSON schema options", () => {
   //     `;
   //   expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
   // });
-  // test("interface", () => {
-  //   const generatedTypebox = TypeScriptToTypeBox.Generate(`
-  //       interface T {
-  //         /**
-  //          * @minimum 100
-  //          * @maximum 200
-  //          * @multipleOf 2
-  //          * @default 150
-  //          * @description "it's a number" - strings must be quoted
-  //          * @foobar "should support unknown props"
-  //          */
-  //         x: number;
-  //       }
-  //       `);
-  //   const expectedResult = `
-  //       import { Type, Static } from "@sinclair/typebox";
-  //
-  //       type T = Static<typeof T>;
-  //       const T = Type.Object({
-  //         x: Type.Number({
-  //           minimum: 100,
-  //           maximum: 200,
-  //           multipleOf: 2,
-  //           default: 150,
-  //           description: "it's a number",
-  //           foobar: "should support unknown props",
-  //         }),
-  //       });
-  //       `;
-  //   expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
-  // });
+  test("type - readonly number[]", () => {
+    const generatedTypebox = TypeScriptToTypeBox.Generate(`
+    type T = {
+     /**
+     * @minItems 2
+     * @maxItems 4
+     */
+      a: readonly number[];
+    };
+    `);
+    const expectedResult = `
+    import { Type, Static } from "@sinclair/typebox";
+
+    type T = Static<typeof T>;
+    const T = Type.Object({
+      a: Type.Readonly(Type.Array(Type.Number(), { minItems: 2, maxItems: 4 })),
+    });
+    `;
+    expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
+  });
+
+  test("type - number | string", () => {
+    const generatedTypebox = TypeScriptToTypeBox.Generate(`
+      type T = {
+       /**
+       * @minItems 2
+       * @maxItems 4
+       */
+      a: number | string;
+      }
+      `);
+    const expectedResult = `
+      import { Type, Static } from "@sinclair/typebox";
+
+      type T = Static<typeof T>;
+      const T = Type.Object({
+        a: Type.Union([Type.Number(), Type.String()], { minItems: 2, maxItems: 4 }),
+      });
+      `;
+    expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
+  });
+  // TODO: continue here.
+  test("interface", () => {
+    const generatedTypebox = TypeScriptToTypeBox.Generate(`
+        interface T {
+          /**
+           * @minimum 100
+           * @maximum 200
+           * @multipleOf 2
+           * @default 150
+           * @description "it's a number" - strings must be quoted
+           * @foobar "should support unknown props"
+           */
+          x: number;
+        }
+        `);
+    const expectedResult = `
+        import { Type, Static } from "@sinclair/typebox";
+
+        type T = Static<typeof T>;
+        const T = Type.Object({
+          x: Type.Number({
+            minimum: 100,
+            maximum: 200,
+            multipleOf: 2,
+            default: 150,
+            description: "it's a number",
+            foobar: "should support unknown props",
+          }),
+        });
+        `;
+    expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
+  });
   // test("optional", () => {
   //   const generatedTypebox = TypeScriptToTypeBox.Generate(`
   //     type T = {

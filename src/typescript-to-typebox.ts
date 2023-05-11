@@ -195,9 +195,6 @@ export namespace TypeScriptToTypeBox {
       IsOptionalProperty(node),
     ];
     const type = Collect(node.type);
-    // const jsonSchemaOptions = generateOptionsBasedOnJsDocOfNode(node);
-    // const typeWithJsonSchemaOptions = addOptionsToType(type, jsonSchemaOptions);
-
     if (readonly && optional) {
       return yield `${node.name.getText()}: Type.ReadonlyOptional(${type})`;
     } else if (readonly) {
@@ -287,7 +284,7 @@ export namespace TypeScriptToTypeBox {
       yield `Type.KeyOf(${type})`;
     }
     if (node.operator === ts.SyntaxKind.ReadonlyKeyword) {
-      yield Collect(node.type);
+      yield `Type.Readonly(${Collect(node.type)})`;
     }
   }
   function* Parameter(node: ts.ParameterDeclaration): IterableIterator<string> {
