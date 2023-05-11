@@ -6,7 +6,7 @@ import * as ts from "typescript";
 import * as doctrine from "doctrine";
 
 const getJsDocStringFromNode = (
-  node: ts.TypeAliasDeclaration | ts.PropertySignature
+  node: ts.TypeAliasDeclaration | ts.PropertySignature | ts.InterfaceDeclaration
 ): string[] => {
   const regexToGetComments = /\/\*\*([\s\S]*?)\*\//;
   const match = node.getFullText().match(regexToGetComments);
@@ -38,7 +38,7 @@ const generateOptionsForNode = (
  * based on the given jsdoc ast.
  **/
 export const generateOptionsBasedOnJsDocOfNode = (
-  node: ts.TypeAliasDeclaration | ts.PropertySignature
+  node: ts.TypeAliasDeclaration | ts.PropertySignature | ts.InterfaceDeclaration
 ) => {
   const jsDocStrings = getJsDocStringFromNode(node);
   const tags = jsDocStrings.flatMap(astTagsFromJsDoc);
@@ -74,9 +74,9 @@ export const generateOptionsBasedOnJsDocOfNode = (
  **/
 export const addOptionsToType = (
   typeAsString: string,
-  options: Record<any, any>
+  options?: Record<any, any>
 ) => {
-  if (Object.keys(options).length === 0) {
+  if (options === undefined || Object.keys(options).length === 0) {
     return typeAsString;
   }
 

@@ -355,6 +355,7 @@ export namespace TypeScriptToTypeBox {
     node: ts.InterfaceDeclaration
   ): IterableIterator<string> {
     useImports = true;
+    const jsonSchemaOptions = generateOptionsBasedOnJsDocOfNode(node);
     const isRecursiveType = IsRecursiveType(node);
     if (isRecursiveType) recursiveDeclaration = node;
     const heritage =
@@ -394,6 +395,7 @@ export namespace TypeScriptToTypeBox {
       yield `${staticDeclaration}\n${typeDeclaration}`;
     } else {
       const exports = IsExport(node) ? "export " : "";
+      schemaOptions.push(jsonSchemaOptions);
       const members = PropertiesFromTypeElementArray(node.members);
       const staticDeclaration = `${exports}type ${node.name.getText()} = Static<typeof ${node.name.getText()}>`;
       const rawTypeExpression = IsRecursiveType(node)
@@ -637,16 +639,28 @@ export namespace TypeScriptToTypeBox {
     if (node.kind === ts.SyntaxKind.ExportKeyword) return yield `export`;
     if (node.kind === ts.SyntaxKind.KeyOfKeyword) return yield `Type.KeyOf()`;
     if (node.kind === ts.SyntaxKind.NumberKeyword) {
-      console.log(schemaOptions);
-      return yield `Type.Number(${
-        schemaOptions.length > 0 ? JSON.stringify(schemaOptions.pop()) : ""
-      })`;
+      const jsonSchemaOptions = schemaOptions.pop();
+      if (
+        jsonSchemaOptions === undefined ||
+        Object.keys(jsonSchemaOptions).length === 0
+      ) {
+        return yield `Type.Number()`;
+      }
+      return yield `Type.Number(${JSON.stringify(jsonSchemaOptions)})`;
     }
+    // TODO: Probably add function to add types correctly here (also for
+    // boolean) probably need more knowledge of json schema to know which types
+    // even should get options here!
     if (node.kind === ts.SyntaxKind.BigIntKeyword) return yield `Type.BigInt()`;
     if (node.kind === ts.SyntaxKind.StringKeyword) {
-      return yield `Type.String(${
-        schemaOptions.length > 0 ? JSON.stringify(schemaOptions.pop()) : ""
-      })`;
+      const jsonSchemaOptions = schemaOptions.pop();
+      if (
+        jsonSchemaOptions === undefined ||
+        Object.keys(jsonSchemaOptions).length === 0
+      ) {
+        return yield `Type.String()`;
+      }
+      return yield `Type.String(${JSON.stringify(jsonSchemaOptions)})`;
     }
     if (node.kind === ts.SyntaxKind.SymbolKeyword) return yield `Type.Symbol()`;
     if (node.kind === ts.SyntaxKind.BooleanKeyword)
