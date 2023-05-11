@@ -2,7 +2,7 @@ import { describe, test, it, mock } from "node:test";
 import assert from "node:assert/strict";
 import * as prettier from "prettier";
 import { TypeScriptToTypeBox } from "../src/typescript-to-typebox";
-import { ts2typebox, Ts2TypeboxOptions } from "../src/index";
+import { ts2typebox } from "../src/index";
 
 const formatWithPrettier = (input: string): string => {
   return prettier.format(input, { parser: "typescript" });
@@ -410,6 +410,26 @@ describe("programmatic cli usage", () => {
   it("prints help", () => {
     mock.method(console, "log", () => {});
     ts2typebox({ help: "h" });
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
     assert.equal(console.log.mock.calls.length, 1);
+
+    ts2typebox({ help: "help" });
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 2);
+
+    // expect to throw since we have no "types.ts" in cwd.
+    assert.throws(() => ts2typebox({}));
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 2);
   });
+  // TODO: continue here!
+  describe("with a types.ts file", () => {
+    it.todo("generates 'generated-types.ts' file", () => {});
+    it.todo("writes output to stdout");
+  });
+  // TODO: use relative and absolute paths?
+  // TODO: add ability to skip the "type" generation.
 });
