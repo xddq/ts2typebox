@@ -458,7 +458,6 @@ export namespace TypeScriptToTypeBox {
       const exports = IsExport(node) ? "export " : "";
       schemaOptions.push(jsonSchemaOptions);
       const type_0 = Collect(node.type);
-      console.log("collected type in TypeAliasDeclaration", type_0);
       const type_1 = isRecursiveType
         ? `Type.Recursive(This => ${type_0})`
         : type_0;
