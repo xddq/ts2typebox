@@ -196,17 +196,16 @@ export namespace TypeScriptToTypeBox {
     ];
     const type = Collect(node.type);
     const jsonSchemaOptions = generateOptionsBasedOnJsDocOfNode(node);
+    const typeWithJsonSchemaOptions = addOptionsToType(type, jsonSchemaOptions);
+
     if (readonly && optional) {
-      return yield `${node.name.getText()}: Type.ReadonlyOptional(${type})`;
+      return yield `${node.name.getText()}: Type.ReadonlyOptional(${typeWithJsonSchemaOptions})`;
     } else if (readonly) {
-      return yield `${node.name.getText()}: Type.Readonly(${type})`;
+      return yield `${node.name.getText()}: Type.Readonly(${typeWithJsonSchemaOptions})`;
     } else if (optional) {
-      return yield `${node.name.getText()}: Type.Optional(${type})`;
+      return yield `${node.name.getText()}: Type.Optional(${typeWithJsonSchemaOptions})`;
     } else {
-      return yield `${node.name.getText()}: ${addOptionsToType(
-        type,
-        jsonSchemaOptions
-      )}`;
+      return yield `${node.name.getText()}: ${typeWithJsonSchemaOptions}`;
     }
   }
   function* ArrayTypeNode(node: ts.ArrayTypeNode): IterableIterator<string> {

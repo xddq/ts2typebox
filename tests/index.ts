@@ -403,5 +403,42 @@ describe("ts2typebox - Typescript to Typebox", () => {
         `;
       expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
     });
+    test("optional", () => {
+      const generatedTypebox = TypeScriptToTypeBox.Generate(`
+        type T = {
+          /**
+           * @minimum 4
+           */
+          a?: number
+        }
+        `);
+      const expectedResult = `
+        import { Type, Static } from "@sinclair/typebox";
+          export const T = Type.Object({
+          a: Type.Optional(Type.Number({"minimum": 4}))
+          })
+        `;
+      expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
+    });
+    // TODO: fix with arrays.
+    // test("readonly", () => {
+    //   const generatedTypebox = TypeScriptToTypeBox.Generate(`
+    //     export type T = {
+    //       /**
+    //        * @minimum 4
+    //        */
+    //       a: readonly number[];
+    //     };
+    //     `);
+    //   const expectedResult = `
+    //     import { Type, Static } from "@sinclair/typebox";
+    //
+    //     export type T = Static<typeof T>;
+    //     export const T = Type.Object({
+    //       a: Type.Array(Type.Number({ minimum: 4 })),
+    //     });
+    //   `;
+    //   expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
+    // });
   });
 });
