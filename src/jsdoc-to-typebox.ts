@@ -80,22 +80,20 @@ export const addOptionsToType = (
     return typeAsString;
   }
 
-  const closingParensCount = getNumberOfEndingClosingParens(typeAsString);
+  // const closingParensCount = getNumberOfEndingClosingParens(typeAsString);
 
   // TODO: probably add ": SchemaOptions" here. Was mentioned in discussion, but I
   // did not find the type anywhere? Perhaps I misunderstood something?
   // src: https://github.com/sinclairzx81/typebox-codegen/discussions/13#discussioncomment-5858910
-  return `${typeAsString.slice(0, closingParensCount * -1)}${JSON.stringify(
-    options
-  )}${")".repeat(closingParensCount)}`;
+  return `${typeAsString.slice(0, -1)},${JSON.stringify(options)})`;
 };
 
-const getNumberOfEndingClosingParens = (type: string) => {
-  let currentType = type;
-  let closingEndingParensCount = 0;
-  while (currentType.endsWith(")")) {
-    currentType = currentType.slice(0, -1);
-    closingEndingParensCount = closingEndingParensCount + 1;
-  }
-  return closingEndingParensCount;
-};
+// const getNumberOfEndingClosingParens = (type: string) => {
+//   let currentType = type;
+//   let closingEndingParensCount = 0;
+//   while (currentType.endsWith(")")) {
+//     currentType = currentType.slice(0, -1);
+//     closingEndingParensCount = closingEndingParensCount + 1;
+//   }
+//   return closingEndingParensCount;
+// };

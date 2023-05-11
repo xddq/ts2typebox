@@ -195,22 +195,27 @@ export namespace TypeScriptToTypeBox {
       IsOptionalProperty(node),
     ];
     const type = Collect(node.type);
-    const jsonSchemaOptions = generateOptionsBasedOnJsDocOfNode(node);
-    const typeWithJsonSchemaOptions = addOptionsToType(type, jsonSchemaOptions);
+    // const jsonSchemaOptions = generateOptionsBasedOnJsDocOfNode(node);
+    // const typeWithJsonSchemaOptions = addOptionsToType(type, jsonSchemaOptions);
 
     if (readonly && optional) {
-      return yield `${node.name.getText()}: Type.ReadonlyOptional(${typeWithJsonSchemaOptions})`;
+      return yield `${node.name.getText()}: Type.ReadonlyOptional(${type})`;
     } else if (readonly) {
-      return yield `${node.name.getText()}: Type.Readonly(${typeWithJsonSchemaOptions})`;
+      return yield `${node.name.getText()}: Type.Readonly(${type})`;
     } else if (optional) {
-      return yield `${node.name.getText()}: Type.Optional(${typeWithJsonSchemaOptions})`;
+      return yield `${node.name.getText()}: Type.Optional(${type})`;
     } else {
-      return yield `${node.name.getText()}: ${typeWithJsonSchemaOptions}`;
+      return yield `${node.name.getText()}: ${type}`;
     }
   }
   function* ArrayTypeNode(node: ts.ArrayTypeNode): IterableIterator<string> {
+    const arrayJsonSchemaOptions = schemaOptions.pop();
     const type = Collect(node.elementType);
-    yield `Type.Array(${type})`;
+    const arrayTypeWithoutOptions = `Type.Array(${type})`;
+    // yield arrayTypeWithoutOptions;
+    yield arrayJsonSchemaOptions === undefined
+      ? arrayTypeWithoutOptions
+      : addOptionsToType(arrayTypeWithoutOptions, arrayJsonSchemaOptions);
   }
   function* Block(node: ts.Block): IterableIterator<string> {
     blockLevel += 1;
@@ -224,9 +229,16 @@ export namespace TypeScriptToTypeBox {
     const types = node.elements.map((type) => Collect(type)).join(",\n");
     yield `Type.Tuple([\n${types}\n])`;
   }
+  // TODO: I don't know to much about unions in JSON schema. Are there even
+  // options that can be passed to unions? Or should we drop this and simply pop
+  // the schemaOptions?
   function* UnionTypeNode(node: ts.UnionTypeNode): IterableIterator<string> {
+    const unionJsonSchemaOptions = schemaOptions.pop();
     const types = node.types.map((type) => Collect(type)).join(",\n");
-    yield `Type.Union([\n${types}\n])`;
+    const unionWithoutOptions = `Type.Union([\n${types}\n])`;
+    yield unionJsonSchemaOptions === undefined
+      ? unionWithoutOptions
+      : addOptionsToType(unionWithoutOptions, unionJsonSchemaOptions);
   }
   function* MethodSignature(
     node: ts.MethodSignature
@@ -406,6 +418,8 @@ export namespace TypeScriptToTypeBox {
     recursiveDeclaration = null;
   }
 
+  let schemaOptions: Record<any, any>[] = [];
+
   function* TypeAliasDeclaration(
     node: ts.TypeAliasDeclaration
   ): IterableIterator<string> {
@@ -413,6 +427,7 @@ export namespace TypeScriptToTypeBox {
     const jsonSchemaOptions = generateOptionsBasedOnJsDocOfNode(node);
     const isRecursiveType = IsRecursiveType(node);
     if (isRecursiveType) recursiveDeclaration = node;
+    // Generics case
     if (node.typeParameters) {
       useGenerics = true;
       const exports = IsExport(node) ? "export " : "";
@@ -442,16 +457,15 @@ export namespace TypeScriptToTypeBox {
       yield `${staticDeclaration}\n${typeDeclaration}`;
     } else {
       const exports = IsExport(node) ? "export " : "";
+      schemaOptions.push(jsonSchemaOptions);
       const type_0 = Collect(node.type);
+      console.log("collected type in TypeAliasDeclaration", type_0);
       const type_1 = isRecursiveType
         ? `Type.Recursive(This => ${type_0})`
         : type_0;
       const type_2 = InjectIdentifier(ResolveIdentifier(node), type_1, false);
       const staticDeclaration = `${exports}type ${node.name.getText()} = Static<typeof ${node.name.getText()}>`;
-      const typeDeclaration = `${exports}const ${node.name.getText()} = ${addOptionsToType(
-        type_2,
-        jsonSchemaOptions
-      )}`;
+      const typeDeclaration = `${exports}const ${node.name.getText()} = ${type_2}`;
       yield `${staticDeclaration}\n${typeDeclaration}`;
     }
     typeNames.add(node.name.getText());
@@ -625,9 +639,18 @@ export namespace TypeScriptToTypeBox {
     if (ts.isSourceFile(node)) return yield* SourceFile(node);
     if (node.kind === ts.SyntaxKind.ExportKeyword) return yield `export`;
     if (node.kind === ts.SyntaxKind.KeyOfKeyword) return yield `Type.KeyOf()`;
-    if (node.kind === ts.SyntaxKind.NumberKeyword) return yield `Type.Number()`;
+    if (node.kind === ts.SyntaxKind.NumberKeyword) {
+      console.log(schemaOptions);
+      return yield `Type.Number(${
+        schemaOptions.length > 0 ? JSON.stringify(schemaOptions.pop()) : ""
+      })`;
+    }
     if (node.kind === ts.SyntaxKind.BigIntKeyword) return yield `Type.BigInt()`;
-    if (node.kind === ts.SyntaxKind.StringKeyword) return yield `Type.String()`;
+    if (node.kind === ts.SyntaxKind.StringKeyword) {
+      return yield `Type.String(${
+        schemaOptions.length > 0 ? JSON.stringify(schemaOptions.pop()) : ""
+      })`;
+    }
     if (node.kind === ts.SyntaxKind.SymbolKeyword) return yield `Type.Symbol()`;
     if (node.kind === ts.SyntaxKind.BooleanKeyword)
       return yield `Type.Boolean()`;
