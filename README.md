@@ -1,9 +1,23 @@
-# ts2typebox
+<h1 align="center">
+    ts2typebox
+</h1>
 
 Cli tool used to generate typebox JSON schemas based on given typescript types.
 Based on the initial codegen code from
 [typebox](https://github.com/sinclairzx81/typebox) by
 [sinclairzx81](https://github.com/sinclairzx81).
+
+<p align="center">
+  <a href="https://github.com/xddq/ts2typebox/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="ts2typebox is released under the MIT license." />
+  </a>
+  <a href="https://www.npmjs.org/package/ts2typebox">
+    <img src="https://img.shields.io/npm/v/ts2typebox?color=brightgreen&label=npm%20package" alt="Current npm package version." />
+  </a>
+  <a href="https://github.com/xddq/ts2typebox/actions/workflows/buildAndTest.yaml">
+    <img src="https://github.com/xddq/ts2typebox/actions/workflows/buildAndTest.yaml/badge.svg" alt="State of Github Action" />
+  </a>
+</p>
 
 ## Installation
 
@@ -136,8 +150,9 @@ export const T = Type.Number({
 To cut the slack, all the [standard
 types](https://github.com/sinclairzx81/typebox#standard-types) supported in
 typebox are supported by ts2typebox. For hands on examples, you can follow the
-simple snippets stored inside the examples folder. For a more complete set of
-examples take a look at the tests inside the repo.
+simple snippets stored inside the
+[examples](https://github.com/xddq/ts2typebox/tree/main/examples) folder. For a
+more complete set of examples take a look at the tests inside the repo.
 
 ## cli usage
 

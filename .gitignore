@@ -1,8 +1,6 @@
 node_modules
 dist
-types.ts
-typesx.ts
-generated-types.ts
-generated-typesx.ts
 TODO
 coverage
+/generated-types.ts
+/types.ts
