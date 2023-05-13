@@ -1,6 +1,6 @@
 {
   "name": "ts2typebox",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Creates typebox JSON schemas from typescript types",
   "main": "dist/src/index.js",
   "source": "dist/src/index.js",
