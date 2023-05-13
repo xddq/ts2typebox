@@ -21,8 +21,9 @@ export type Ts2TypeboxOptions = {
   output?: string;
   /**
    * Makes the function print the result to stdout instead of writing it to a
-   * file. Has precedence over "output" argument. Uses console.log to print to
-   * stdout.
+   * file. When using in code it makes the function also return a string
+   * containing the generated types. Has precedence over "output" argument. Uses
+   * console.log to print to stdout.
    */
   outputStdout?: boolean;
 };
@@ -37,8 +38,8 @@ type GeneratedTypes = string;
  * Use this function for programmatic usage of ts2typebox. The options are typed
  * and commented.
  *
- * @returns The generated types as string or undefined (if outputStdout or help
- * option were passed).
+ * @returns The generated types as string if (outputStdout was set) or undefined
+ * otherwise.
  *
  * @throws Error
  **/
@@ -71,7 +72,8 @@ export const ts2typebox = ({
        typebox types. Defaults to "generated-types.ts".
 
     --output-stdout
-       Does not generate an output file and prints the generated code to stdout instead.
+       Does not generate an output file and prints the generated code to stdout
+       instead. Has precedence over -o/--output.
       `);
     return;
   }
@@ -97,5 +99,4 @@ export const ts2typebox = ({
       encoding: "utf8",
     }
   );
-  return resultFormatted;
 };

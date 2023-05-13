@@ -687,4 +687,65 @@ describe("programmatic cli usage", () => {
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
+  it("returns the generated types and logs them to stdout if 'outputStdout' is true", () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      type T = {
+        a: number;
+        b: string;
+      };
+    `;
+    const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
+    const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
+    fs.writeFileSync(inputAbsolute, dummyTypes);
+
+    mock.method(console, "log", () => {});
+    ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      outputStdout: true,
+    });
+
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 1);
+    assert.equal(fs.existsSync(outputAbsolute), false);
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputAbsolute,
+      outputAbsolute,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
+  it("option 'outputStdout' has precedence over 'output'", () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      type T = {
+        a: number;
+        b: string;
+      };
+    `;
+    const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
+    const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
+    fs.writeFileSync(inputAbsolute, dummyTypes);
+
+    mock.method(console, "log", () => {});
+    ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      output: buildOsIndependentPath(["dist", "test", "output.ts"]),
+      outputStdout: true,
+    });
+
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 1);
+    assert.equal(fs.existsSync(outputAbsolute), false);
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputAbsolute,
+      outputAbsolute,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
 });

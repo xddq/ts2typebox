@@ -20,7 +20,8 @@ Based on the initial codegen code from
 
 - The cli can be used with `ts2typebox --input <fileName> --output <fileName>`,
   or by simply running `ts2typebox`. The input defaults to "types.ts" and the
-  output to "generated-types.ts" relative to the current working directory.
+  output to "generated-types.ts" relative to the current working directory. For
+  more see [cli usage](#cli-usage).
 
 ## Examples
 
@@ -135,3 +136,34 @@ export const T = Type.Number({
 To cut it here, all the [standard types](https://github.com/sinclairzx81/typebox#standard-types)
 supported in typebox are supported by ts2typebox. For more examples take a
 look at the tests inside the repo.
+
+## cli usage
+
+The following text is the output that will be displayed when you issue `ts2typebox -h` or
+`ts2typebox --help`.
+
+```
+    ts2typebox is a cli tool to generate typebox types based on typescript
+    types. Version: ${packageJson.version}
+
+    Usage:
+
+    ts2typebox [ARGUMENTS]
+
+    Arguments:
+
+    -h, --help
+       Displays this menu.
+
+    -i, --input
+       Specifies the relative path to the file containing the typescript types
+       that will be used to generated typebox types. Defaults to "types.ts".
+
+    -o, --output
+       Specifies the relative path to generated file that will contain the
+       typebox types. Defaults to "generated-types.ts".
+
+    --output-stdout
+       Does not generate an output file and prints the generated code to stdout
+       instead. Has precedence over -o/--output.
+```
