@@ -18,5 +18,5 @@
     },
     "declaration": true
   },
-  "exclude": ["example"]
+  "exclude": ["example", "dist"]
 }
