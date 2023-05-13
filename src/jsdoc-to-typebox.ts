@@ -52,12 +52,20 @@ export const generateOptionsBasedOnJsDocOfNode = (
         return BigInt(val);
       }
       // string
-      // TODO: also allow quoted strings via 'test here'?
       if (val.startsWith('"')) {
         const valAfterFirstQuote = val.slice(1);
         // does it contain another (closing) '"'?
         if (valAfterFirstQuote.includes('"')) {
           const valInsideQuotes = valAfterFirstQuote.split('"')[0];
+          return valInsideQuotes;
+        }
+      }
+      // string
+      if (val.startsWith("'")) {
+        const valAfterFirstQuote = val.slice(1);
+        // does it contain another (closing) '"'?
+        if (valAfterFirstQuote.includes("'")) {
+          const valInsideQuotes = valAfterFirstQuote.split("'")[0];
           return valInsideQuotes;
         }
       }

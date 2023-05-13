@@ -1,9 +1,10 @@
 {
   "name": "ts2typebox",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Creates typebox JSON schemas from typescript types",
   "main": "dist/src/index.js",
   "source": "dist/src/index.js",
+  "typings": "dist/src/index.d.ts",
   "bin": {
     "ts2typebox": "dist/src/index.js",
     "ts-to-typebox": "dist/src/index.js"
@@ -11,7 +12,7 @@
   "scripts": {
     "build": "tsc",
     "watch-ts": "tsc -w",
-    "test": "tsc && node --test --test-reporter spec dist/tests/*.js",
+    "test": "tsc && node --test --test-reporter spec",
     "start": "node dist/src/index.js"
   },
   "repository": {
@@ -19,6 +20,7 @@
     "url": "git+https://github.com/xddq/ts2typebox.git"
   },
   "keywords": [
+    "JSON schema",
     "ts2typebox",
     "ts-to-typebox",
     "typescript",
@@ -37,16 +39,18 @@
   "homepage": "https://github.com/xddq/ts2typebox#readme",
   "dependencies": {
     "@sinclair/typebox": "0.28.9",
+    "doctrine": "3.0.0",
     "minimist": "1.2.8",
     "prettier": "2.8.7",
-    "typescript": "5.0.4",
-    "doctrine": "3.0.0"
+    "typescript": "5.0.4"
   },
   "devDependencies": {
-    "@types/minimist": "1.2.2",
-    "@types/node": "18.15.3",
-    "@types/prettier": "2.7.2",
     "@types/doctrine": "0.0.5",
+    "@types/minimist": "1.2.2",
+    "@types/node": "18.16.0",
+    "@types/prettier": "2.7.2",
+    "@types/shelljs": "0.8.12",
+    "shelljs": "0.8.5",
     "tsconfig-paths": "4.1.2"
   }
 }

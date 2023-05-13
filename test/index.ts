@@ -1,7 +1,16 @@
-import { describe, test } from "node:test";
+import { describe, test, it, mock, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import * as prettier from "prettier";
+import fs from "node:fs";
+import path from "node:path";
+import shell from "shelljs";
 import { TypeScriptToTypeBox } from "../src/typescript-to-typebox";
+import { ts2typebox } from "../src/programmatic-usage";
+
+const SHELLJS_RETURN_CODE_OK = 0;
+const buildOsIndependentPath = (foldersOrFiles: string[]) => {
+  return foldersOrFiles.join(path.sep);
+};
 
 const formatWithPrettier = (input: string): string => {
   return prettier.format(input, { parser: "typescript" });
@@ -430,6 +439,29 @@ describe("ts2typebox - Typescript to Typebox", () => {
       `;
       expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
     });
+    test(`supports ' as well as " for string JSON schema options`, () => {
+      const generatedTypebox = TypeScriptToTypeBox.Generate(`
+      type T = {
+        /**
+         * @test "should be supported"
+         * @anotherTest 'should be supported'
+         */
+        a: number;
+      };
+      `);
+      const expectedResult = `
+      import { Type, Static } from "@sinclair/typebox";
+
+      type T = Static<typeof T>;
+      const T = Type.Object({
+        a: Type.Number({
+          test: "should be supported",
+          anotherTest: "should be supported",
+        }),
+      });
+      `;
+      expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
+    });
     test("type - optional", () => {
       const generatedTypebox = TypeScriptToTypeBox.Generate(`
       type T = {
@@ -566,5 +598,154 @@ describe("ts2typebox - Typescript to Typebox", () => {
         `;
       expectEqualIgnoreFormatting(generatedTypebox, expectedResult);
     });
+  });
+});
+describe("programmatic cli usage", () => {
+  beforeEach(() => {
+    // Reset the globally tracked mocks.
+    mock.reset();
+  });
+
+  it("prints help", () => {
+    mock.method(console, "log", () => {});
+    assert.equal(ts2typebox({ help: "h" }), undefined);
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 1);
+
+    assert.equal(ts2typebox({ help: "help" }), undefined);
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 2);
+
+    // expect to throw since we have no "types.ts" in cwd.
+    assert.throws(() => ts2typebox({ input: "fileDoesNotExist" }));
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 2);
+  });
+  // TODO: these are really hacky right now. Probably look at any other cli tool
+  // and see how they handle absolute and relative paths and then adapt the
+  // tests after implementing that.
+  // NOTE: We are starting/executing from the root of the repo and the built files
+  // will live in process.cwd(). Meaning when we give no output path the output
+  // path will be the root.
+  it("generates 'generated-types.ts' file", () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      type T = {
+        a: number;
+        b: string;
+      };
+    `;
+    const inputTypesPath = buildOsIndependentPath([__dirname, "types.ts"]);
+    fs.writeFileSync(inputTypesPath, dummyTypes);
+
+    const expectedOutputPath = buildOsIndependentPath([
+      __dirname,
+      "..",
+      "..",
+      "generated-types.ts",
+    ]);
+    // clean up output path in case the project was invoked manually before
+    shell.rm("-f", [expectedOutputPath]);
+    ts2typebox({ input: buildOsIndependentPath(["dist", "test", "types.ts"]) });
+
+    assert.equal(fs.existsSync(expectedOutputPath), true);
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputTypesPath,
+      expectedOutputPath,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
+  it("generates output for given path", () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      type T = {
+        a: number;
+        b: string;
+      };
+    `;
+    const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
+    const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
+    fs.writeFileSync(inputAbsolute, dummyTypes);
+
+    ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      output: buildOsIndependentPath(["dist", "test", "output.ts"]),
+    });
+
+    console.log(outputAbsolute);
+    assert.equal(fs.existsSync(outputAbsolute), true);
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputAbsolute,
+      outputAbsolute,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
+  it("returns the generated types and logs them to stdout if 'outputStdout' is true", () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      type T = {
+        a: number;
+        b: string;
+      };
+    `;
+    const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
+    const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
+    fs.writeFileSync(inputAbsolute, dummyTypes);
+
+    mock.method(console, "log", () => {});
+    ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      outputStdout: true,
+    });
+
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 1);
+    assert.equal(fs.existsSync(outputAbsolute), false);
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputAbsolute,
+      outputAbsolute,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
+  it("option 'outputStdout' has precedence over 'output'", () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      type T = {
+        a: number;
+        b: string;
+      };
+    `;
+    const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
+    const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
+    fs.writeFileSync(inputAbsolute, dummyTypes);
+
+    mock.method(console, "log", () => {});
+    ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      output: buildOsIndependentPath(["dist", "test", "output.ts"]),
+      outputStdout: true,
+    });
+
+    // @ts-ignore TODO: is there another way to call the mock right now?
+    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
+    assert.equal(console.log.mock.calls.length, 1);
+    assert.equal(fs.existsSync(outputAbsolute), false);
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputAbsolute,
+      outputAbsolute,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
 });
