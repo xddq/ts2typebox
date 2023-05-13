@@ -133,9 +133,11 @@ export const T = Type.Number({
 });
 ```
 
-To cut it here, all the [standard types](https://github.com/sinclairzx81/typebox#standard-types)
-supported in typebox are supported by ts2typebox. For more examples take a
-look at the tests inside the repo.
+To cut the slack, all the [standard
+types](https://github.com/sinclairzx81/typebox#standard-types) supported in
+typebox are supported by ts2typebox. For hands on examples, you can follow the
+simple snippets stored inside the examples folder. For a more complete set of
+examples take a look at the tests inside the repo.
 
 ## cli usage
 
