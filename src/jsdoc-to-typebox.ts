@@ -6,7 +6,7 @@ import * as ts from "typescript";
 import * as doctrine from "doctrine";
 
 const getJsDocStringFromNode = (
-  node: ts.TypeAliasDeclaration | ts.PropertySignature
+  node: ts.TypeAliasDeclaration | ts.PropertySignature | ts.InterfaceDeclaration
 ): string[] => {
   const regexToGetComments = /\/\*\*([\s\S]*?)\*\//;
   const match = node.getFullText().match(regexToGetComments);
@@ -38,7 +38,7 @@ const generateOptionsForNode = (
  * based on the given jsdoc ast.
  **/
 export const generateOptionsBasedOnJsDocOfNode = (
-  node: ts.TypeAliasDeclaration | ts.PropertySignature
+  node: ts.TypeAliasDeclaration | ts.PropertySignature | ts.InterfaceDeclaration
 ) => {
   const jsDocStrings = getJsDocStringFromNode(node);
   const tags = jsDocStrings.flatMap(astTagsFromJsDoc);
@@ -82,13 +82,26 @@ export const generateOptionsBasedOnJsDocOfNode = (
  **/
 export const addOptionsToType = (
   typeAsString: string,
-  options: Record<any, any>
+  options?: Record<any, any>
 ) => {
-  if (Object.keys(options).length === 0) {
+  if (options === undefined || Object.keys(options).length === 0) {
     return typeAsString;
   }
+
+  // const closingParensCount = getNumberOfEndingClosingParens(typeAsString);
+
   // TODO: probably add ": SchemaOptions" here. Was mentioned in discussion, but I
   // did not find the type anywhere? Perhaps I misunderstood something?
   // src: https://github.com/sinclairzx81/typebox-codegen/discussions/13#discussioncomment-5858910
-  return `${typeAsString.slice(0, -1)}${JSON.stringify(options)})`;
+  return `${typeAsString.slice(0, -1)},${JSON.stringify(options)})`;
 };
+
+// const getNumberOfEndingClosingParens = (type: string) => {
+//   let currentType = type;
+//   let closingEndingParensCount = 0;
+//   while (currentType.endsWith(")")) {
+//     currentType = currentType.slice(0, -1);
+//     closingEndingParensCount = closingEndingParensCount + 1;
+//   }
+//   return closingEndingParensCount;
+// };
