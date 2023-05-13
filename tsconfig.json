@@ -15,7 +15,8 @@
     "resolveJsonModule": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "declaration": true
   },
   "exclude": ["example"]
 }
