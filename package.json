@@ -38,14 +38,12 @@
   },
   "homepage": "https://github.com/xddq/ts2typebox#readme",
   "dependencies": {
-    "@sinclair/typebox": "0.28.9",
-    "doctrine": "3.0.0",
+    "@sinclair/typebox": "0.28.10",
     "minimist": "1.2.8",
     "prettier": "2.8.7",
     "typescript": "5.0.4"
   },
   "devDependencies": {
-    "@types/doctrine": "0.0.5",
     "@types/minimist": "1.2.2",
     "@types/node": "18.16.0",
     "@types/prettier": "2.7.2",
