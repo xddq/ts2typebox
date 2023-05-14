@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 ---------------------------------------------------------------------------*/
 
-import { JsDoc } from "./common/index";
+import { JsDoc } from "./jsdoc";
 import * as ts from "typescript";
 
 export class TypeScriptToTypeBoxError extends Error {
