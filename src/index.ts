@@ -2,8 +2,9 @@
 import minimist from "minimist";
 
 import { ts2typebox } from "./programmatic-usage";
+export { ts2typebox, Ts2TypeboxOptions } from "./programmatic-usage";
 
-const main = () => {
+const main = async () => {
   const args = minimist(process.argv.slice(2), {
     alias: {
       input: "i",
@@ -16,7 +17,7 @@ const main = () => {
     },
   });
 
-  ts2typebox({
+  await ts2typebox({
     help: args.help,
     input: args.input,
     output: args.output,

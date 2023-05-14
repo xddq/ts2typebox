@@ -1,5 +1,6 @@
 import * as prettier from "prettier";
 import fs from "fs";
+import { cosmiconfig } from "cosmiconfig";
 import packageJson from "../package.json";
 import { TypeScriptToTypeBox } from "./typescript-to-typebox";
 
@@ -8,7 +9,7 @@ export type Ts2TypeboxOptions = {
    * Makes the function print and return help text and quit. Has precendence
    * over all other options. Uses console.log to print the help text to stdout.
    */
-  help?: "h" | "help";
+  help?: true;
   /**
    * The file containing the type definitions in the current working directory.
    * Defaults to "types.ts" if none is given.
@@ -25,7 +26,7 @@ export type Ts2TypeboxOptions = {
    * containing the generated types. Has precedence over "output" argument. Uses
    * console.log to print to stdout.
    */
-  outputStdout?: boolean;
+  outputStdout?: true;
 };
 
 /**
@@ -43,16 +44,59 @@ type GeneratedTypes = string;
  *
  * @throws Error
  **/
-export const ts2typebox = ({
+export const ts2typebox = async ({
   help,
   input,
   output,
   outputStdout,
-}: Ts2TypeboxOptions): GeneratedTypes | undefined => {
-  if (help === "h" || help === "help") {
-    console.log(`
-    ts2typebox is a cli tool to generate typebox types based on typescript
-    types. Version: ${packageJson.version}
+}: Ts2TypeboxOptions): Promise<GeneratedTypes | undefined> => {
+  if (help) {
+    console.log(getHelpText.run());
+    return;
+  }
+
+  const fileWithTsTypes = fs.readFileSync(
+    process.cwd() + `/${input === undefined ? "types.ts" : input}`,
+    "utf8"
+  );
+
+  const explorer = cosmiconfig("prettier");
+  const searchResult = await explorer.search();
+  // TODO: perhaps validate with typebox that these are indeed valid prettier configs
+  const prettierConfig =
+    searchResult === null ? {} : (searchResult.config as prettier.Options);
+
+  const generatedTs = TypeScriptToTypeBox.Generate(fileWithTsTypes);
+  const result = prettier.format(generatedTs, {
+    parser: "typescript",
+    ...prettierConfig,
+  });
+
+  if (outputStdout) {
+    console.log(result);
+    return;
+  }
+
+  fs.writeFileSync(
+    process.cwd() + `/${output === undefined ? "generated-types.ts" : output}`,
+    result,
+    {
+      encoding: "utf8",
+    }
+  );
+};
+
+/**
+ * Declaring this as function in order to make it better testable.
+ * Using an object to be able to mock it and track its usage.
+ */
+export const getHelpText = {
+  run: () => {
+    return `
+    ts2typebox is a cli tool to generate typebox JSON schemas based on given
+    typescript types. The generated output is formatted based on the prettier
+    config inside your repo (or the default one, if you don't have one).
+    Version: ${packageJson.version}
 
     Usage:
 
@@ -74,29 +118,6 @@ export const ts2typebox = ({
     --output-stdout
        Does not generate an output file and prints the generated code to stdout
        instead. Has precedence over -o/--output.
-      `);
-    return;
-  }
-
-  const fileWithTsTypes = fs.readFileSync(
-    process.cwd() + `/${input === undefined ? "types.ts" : input}`,
-    "utf8"
-  );
-  const result = TypeScriptToTypeBox.Generate(fileWithTsTypes);
-  const resultFormatted = prettier.format(result, {
-    parser: "typescript",
-  });
-
-  if (outputStdout) {
-    console.log(resultFormatted);
-    return;
-  }
-
-  fs.writeFileSync(
-    process.cwd() + `/${output === undefined ? "generated-types.ts" : output}`,
-    resultFormatted,
-    {
-      encoding: "utf8",
-    }
-  );
+   `;
+  },
 };
