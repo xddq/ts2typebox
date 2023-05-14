@@ -793,4 +793,63 @@ describe("programmatic cli usage", () => {
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
+
+  it("picks up .ts2typeboxrc.cjs config and transforms values and types accordingly", async () => {
+    // prepares and writes a test .ts2typeboxrc.cjs file.
+    const dummyTs2TypeboxRc = `
+    const transformTypeName = (input) => {
+      return "TestType" + input;
+    };
+    const transformValueName = (input) => {
+      return "testValue" + input;
+    };
+
+    module.exports = {
+      transformTypeName,
+      transformValueName,
+    };
+    `;
+    const configFileAbsolute = buildOsIndependentPath([
+      __dirname,
+      "..",
+      "..",
+      ".ts2typeboxrc.cjs",
+    ]);
+    fs.writeFileSync(configFileAbsolute, dummyTs2TypeboxRc);
+
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+    type T = number;
+    export type U = number;
+    `;
+    const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
+    fs.writeFileSync(inputAbsolute, dummyTypes);
+    const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
+
+    // This should now automatically pick up the given ts2typeboxrc config.
+    await ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      output: buildOsIndependentPath(["dist", "test", "output.ts"]),
+    });
+
+    // Read generated types and check for quotes
+    const generatedTypes = fs.readFileSync(outputAbsolute, "utf-8");
+    const expectedResult = `
+    import { Type, Static } from "@sinclair/typebox";
+
+    type TestTypeT = Static<typeof testValueT>;
+    const testValueT = Type.Number();
+
+    export type TestTypeU = Static<typeof testValueU>;
+    export const testValueU = Type.Number();
+    `;
+    expectEqualIgnoreFormatting(generatedTypes, expectedResult);
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputAbsolute,
+      outputAbsolute,
+      configFileAbsolute,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
 });

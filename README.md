@@ -145,6 +145,29 @@ export const T = Type.Number({
   description: "it's a number",
   foobar: "should support unknown props",
 });
+
+//
+// Well, what if I don't like that the generated type and value has the same
+// name?! No worries, you can define your own transformation functions!
+// So that this..
+//
+
+export type Person = {
+  age: number;
+  name: string;
+};
+
+//
+// Can easily become
+//
+
+import { Type, Static } from "@sinclair/typebox";
+
+export type PersonType = Static<typeof PersonSchema>;
+export const PersonSchema = Type.Object({
+  age: Type.Number(),
+  name: Type.String(),
+});
 ```
 
 To cut the slack, all the [standard
@@ -152,7 +175,8 @@ types](https://github.com/sinclairzx81/typebox#standard-types) supported in
 typebox are supported by ts2typebox. For hands on examples, you can follow the
 simple snippets stored inside the
 [examples](https://github.com/xddq/ts2typebox/tree/main/examples) folder. For a
-more complete set of examples take a look at the tests inside the repo.
+more complete set of examples (every feature is tested) you can take a look at
+the tests inside the repo.
 
 ## cli usage
 
@@ -185,4 +209,12 @@ The following text is the output that will be displayed when you issue `ts2typeb
     --output-stdout
        Does not generate an output file and prints the generated code to stdout
        instead. Has precedence over -o/--output.
+
+    Additional:
+
+    You can adapt the names of the generated types (as well as the names of the
+    generated values) using custom transformation functions which take a string
+    as an input and return a string as their output. These will run on each of
+    the generated types and values, respectively. Please take a look inside the
+    repo under ./examples/transform-value-transform-type for an example of this.
 ```
