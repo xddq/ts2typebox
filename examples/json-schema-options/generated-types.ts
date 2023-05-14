@@ -8,7 +8,7 @@ export const T = Type.Object({
     multipleOf: 2,
     default: 150,
     description: "it's a number",
-    anotherDescription: null,
+    anotherDescription: "can also use as quotes",
     foobar: "should support unknown props",
   }),
 });

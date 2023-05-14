@@ -160,8 +160,10 @@ The following text is the output that will be displayed when you issue `ts2typeb
 `ts2typebox --help`.
 
 ```
-    ts2typebox is a cli tool to generate typebox types based on typescript
-    types. Version: ${packageJson.version}
+    ts2typebox is a cli tool to generate typebox JSON schemas based on given
+    typescript types. The generated output is formatted based on the prettier
+    config inside your repo (or the default one, if you don't have one).
+    Version: ${packageJson.version}
 
     Usage:
 

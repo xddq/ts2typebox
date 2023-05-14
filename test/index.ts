@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import shell from "shelljs";
 import { TypeScriptToTypeBox } from "../src/typescript-to-typebox";
-import { ts2typebox } from "../src/programmatic-usage";
+import { getHelpText, ts2typebox } from "../src/programmatic-usage";
 
 const SHELLJS_RETURN_CODE_OK = 0;
 const buildOsIndependentPath = (foldersOrFiles: string[]) => {
@@ -606,23 +606,22 @@ describe("programmatic cli usage", () => {
     mock.reset();
   });
 
-  it("prints help", () => {
-    mock.method(console, "log", () => {});
-    assert.equal(ts2typebox({ help: "h" }), undefined);
-    // @ts-ignore TODO: is there another way to call the mock right now?
-    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
-    assert.equal(console.log.mock.calls.length, 1);
-
-    assert.equal(ts2typebox({ help: "help" }), undefined);
-    // @ts-ignore TODO: is there another way to call the mock right now?
-    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
-    assert.equal(console.log.mock.calls.length, 2);
+  it("prints help", async () => {
+    const getHelpTextMock = mock.method(getHelpText, "run", () => {});
+    assert.equal(await ts2typebox({ help: true }), undefined);
+    assert.equal(getHelpTextMock.mock.callCount(), 1);
 
     // expect to throw since we have no "types.ts" in cwd.
-    assert.throws(() => ts2typebox({ input: "fileDoesNotExist" }));
-    // @ts-ignore TODO: is there another way to call the mock right now?
-    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
-    assert.equal(console.log.mock.calls.length, 2);
+    // assert.throws(async () => await ts2typebox({ input: "fileDoesNotExist" }));
+    // TODO: for now use this because I did not find assert.throwsAsync
+    // directly. the line above this comment resulted in an issue with async
+    // code
+    try {
+      await ts2typebox({ input: "fileDoesNotExist" });
+      assert.equal("should have thrown!", true);
+    } catch (error) {}
+    // help text should not have been called again
+    assert.equal(getHelpTextMock.mock.callCount(), 1);
   });
   // TODO: these are really hacky right now. Probably look at any other cli tool
   // and see how they handle absolute and relative paths and then adapt the
@@ -630,7 +629,7 @@ describe("programmatic cli usage", () => {
   // NOTE: We are starting/executing from the root of the repo and the built files
   // will live in process.cwd(). Meaning when we give no output path the output
   // path will be the root.
-  it("generates 'generated-types.ts' file", () => {
+  it("generates 'generated-types.ts' file", async () => {
     // prepares and writes a test types.ts file.
     const dummyTypes = `
       type T = {
@@ -649,7 +648,9 @@ describe("programmatic cli usage", () => {
     ]);
     // clean up output path in case the project was invoked manually before
     shell.rm("-f", [expectedOutputPath]);
-    ts2typebox({ input: buildOsIndependentPath(["dist", "test", "types.ts"]) });
+    await ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+    });
 
     assert.equal(fs.existsSync(expectedOutputPath), true);
 
@@ -660,7 +661,7 @@ describe("programmatic cli usage", () => {
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
-  it("generates output for given path", () => {
+  it("generates output for given path", async () => {
     // prepares and writes a test types.ts file.
     const dummyTypes = `
       type T = {
@@ -672,12 +673,11 @@ describe("programmatic cli usage", () => {
     const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
     fs.writeFileSync(inputAbsolute, dummyTypes);
 
-    ts2typebox({
+    await ts2typebox({
       input: buildOsIndependentPath(["dist", "test", "types.ts"]),
       output: buildOsIndependentPath(["dist", "test", "output.ts"]),
     });
 
-    console.log(outputAbsolute);
     assert.equal(fs.existsSync(outputAbsolute), true);
 
     // cleanup generated files
@@ -687,7 +687,7 @@ describe("programmatic cli usage", () => {
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
-  it("returns the generated types and logs them to stdout if 'outputStdout' is true", () => {
+  it("returns the generated types and logs them to stdout if 'outputStdout' is true", async () => {
     // prepares and writes a test types.ts file.
     const dummyTypes = `
       type T = {
@@ -700,7 +700,7 @@ describe("programmatic cli usage", () => {
     fs.writeFileSync(inputAbsolute, dummyTypes);
 
     mock.method(console, "log", () => {});
-    ts2typebox({
+    await ts2typebox({
       input: buildOsIndependentPath(["dist", "test", "types.ts"]),
       outputStdout: true,
     });
@@ -717,7 +717,7 @@ describe("programmatic cli usage", () => {
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
-  it("option 'outputStdout' has precedence over 'output'", () => {
+  it("option 'outputStdout' has precedence over 'output'", async () => {
     // prepares and writes a test types.ts file.
     const dummyTypes = `
       type T = {
@@ -730,7 +730,7 @@ describe("programmatic cli usage", () => {
     fs.writeFileSync(inputAbsolute, dummyTypes);
 
     mock.method(console, "log", () => {});
-    ts2typebox({
+    await ts2typebox({
       input: buildOsIndependentPath(["dist", "test", "types.ts"]),
       output: buildOsIndependentPath(["dist", "test", "output.ts"]),
       outputStdout: true,
@@ -745,6 +745,55 @@ describe("programmatic cli usage", () => {
     const { code: returnCode } = shell.rm("-f", [
       inputAbsolute,
       outputAbsolute,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
+
+  it("picks up prettier config and formats accordingly", async () => {
+    // prepares and writes a test prettierrc.yml file.
+    const dummyPretterConfig = "singleQuote: true";
+    const configFileAbsolute = buildOsIndependentPath([
+      __dirname,
+      "..",
+      "..",
+      ".prettierrc.yml",
+    ]);
+    fs.writeFileSync(configFileAbsolute, dummyPretterConfig);
+
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+    type T = {
+      a: "a" | "b";
+    };
+    `;
+    const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
+    fs.writeFileSync(inputAbsolute, dummyTypes);
+    const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
+
+    // This should now automatically pick up the prettier config. (singleQuote
+    // true is not a default and we are normally just using the default prettier
+    // config). NOTE/TODO: this test will become useless/false positive if we
+    // ever decide to make singleQuote:true the default config of this repo.
+    // Probably adapt later, for now just implement it first.
+    await ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      output: buildOsIndependentPath(["dist", "test", "output.ts"]),
+    });
+
+    // Read generated types and check for quotes
+    const generatedTypes = fs.readFileSync(outputAbsolute, "utf-8");
+    assert.equal(
+      generatedTypes.includes(
+        "a: Type.Union([Type.Literal('a'), Type.Literal('b')]),"
+      ),
+      true
+    );
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputAbsolute,
+      outputAbsolute,
+      configFileAbsolute,
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
