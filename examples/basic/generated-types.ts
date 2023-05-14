@@ -1,5 +1,8 @@
 import { Type, Static } from "@sinclair/typebox";
 
+type Age = Static<typeof Age>;
+const Age = Type.Number();
+
 export type Address = Static<typeof Address>;
 export const Address = Type.Object({
   street: Type.String(),
