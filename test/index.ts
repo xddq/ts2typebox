@@ -699,15 +699,13 @@ describe("programmatic cli usage", () => {
     const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
     fs.writeFileSync(inputAbsolute, dummyTypes);
 
-    mock.method(console, "log", () => {});
+    const consoleLogMock = mock.method(console, "log", () => {});
     await ts2typebox({
       input: buildOsIndependentPath(["dist", "test", "types.ts"]),
       outputStdout: true,
     });
 
-    // @ts-ignore TODO: is there another way to call the mock right now?
-    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
-    assert.equal(console.log.mock.calls.length, 1);
+    assert.equal(consoleLogMock.mock.callCount(), 1);
     assert.equal(fs.existsSync(outputAbsolute), false);
 
     // cleanup generated files
@@ -729,16 +727,14 @@ describe("programmatic cli usage", () => {
     const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
     fs.writeFileSync(inputAbsolute, dummyTypes);
 
-    mock.method(console, "log", () => {});
+    const consoleLogMock = mock.method(console, "log", () => {});
     await ts2typebox({
       input: buildOsIndependentPath(["dist", "test", "types.ts"]),
       output: buildOsIndependentPath(["dist", "test", "output.ts"]),
       outputStdout: true,
     });
 
-    // @ts-ignore TODO: is there another way to call the mock right now?
-    // see spies here: https://nodejs.org/docs/latest-v18.x/api/test.html#ctxcalls
-    assert.equal(console.log.mock.calls.length, 1);
+    assert.equal(consoleLogMock.mock.callCount(), 1);
     assert.equal(fs.existsSync(outputAbsolute), false);
 
     // cleanup generated files
