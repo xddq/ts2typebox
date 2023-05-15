@@ -13,10 +13,13 @@
     "sourceMap": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": true,
     "paths": {
       "@/*": ["./src/*"]
     },
     "declaration": true
   },
-  "exclude": ["examples", "dist"]
+  "include": ["src", "test"],
+  "exclude": ["examples", "dist", "coverage"]
 }

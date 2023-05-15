@@ -2,6 +2,7 @@ import * as prettier from "prettier";
 import fs from "fs";
 import { cosmiconfig } from "cosmiconfig";
 import packageJson from "../package.json";
+import { default as defaultCodeOptions } from "./codeOptions.cjs";
 import { TypeScriptToTypeBox } from "./typescript-to-typebox";
 
 export type Ts2TypeboxOptions = {
@@ -59,19 +60,31 @@ export const ts2typebox = async ({
     process.cwd() + `/${input === undefined ? "types.ts" : input}`,
     "utf8"
   );
+  const generatedTs = TypeScriptToTypeBox.Generate(fileWithTsTypes);
 
+  // post-processing
+  // 1. transformations
+  const ts2typeboxCodeOptions = await cosmiconfig("ts2typebox").search();
+  // TODO: perhaps validate with typebox that these are indeed valid codeOption
+  // configs (ts2typebox options)
+  const usedCodeOptions =
+    ts2typeboxCodeOptions === null
+      ? defaultCodeOptions
+      : (ts2typeboxCodeOptions.config as typeof defaultCodeOptions);
+  const transformedTs = transformValuesAndTypes(generatedTs, usedCodeOptions);
+
+  // 2. formatting
   const explorer = cosmiconfig("prettier");
   const searchResult = await explorer.search();
   // TODO: perhaps validate with typebox that these are indeed valid prettier configs
   const prettierConfig =
     searchResult === null ? {} : (searchResult.config as prettier.Options);
-
-  const generatedTs = TypeScriptToTypeBox.Generate(fileWithTsTypes);
-  const result = prettier.format(generatedTs, {
+  const result = prettier.format(transformedTs, {
     parser: "typescript",
     ...prettierConfig,
   });
 
+  // output (write or stdout and return)
   if (outputStdout) {
     console.log(result);
     return;
@@ -84,6 +97,29 @@ export const ts2typebox = async ({
       encoding: "utf8",
     }
   );
+};
+
+/**
+ * Post-processing after successful type generation.
+ * Transforms all values and types based on given functions.
+ */
+const transformValuesAndTypes = (
+  generatedTypes: string,
+  transformFns: typeof defaultCodeOptions
+) => {
+  const tsWithTransformedTypes = generatedTypes.replace(
+    /(type)\s(\w+)/gm,
+    (_match, group1, group2) => {
+      return group1 + " " + transformFns.transformTypeName(group2);
+    }
+  );
+  const result = tsWithTransformedTypes.replace(
+    /(typeof|const)\s(\w+)/gm,
+    (_match, group1, group2) => {
+      return group1 + " " + transformFns.transformValueName(group2);
+    }
+  );
+  return result;
 };
 
 /**
@@ -118,6 +154,14 @@ export const getHelpText = {
     --output-stdout
        Does not generate an output file and prints the generated code to stdout
        instead. Has precedence over -o/--output.
+
+    Additional:
+
+    You can adapt the names of the generated types (as well as the names of the
+    generated values) using custom transformation functions which take a string
+    as an input and return a string as their output. These will run on each of
+    the generated types and values, respectively. Please take a look inside the
+    repo under ./examples/transform-value-transform-type for an example of this.
    `;
   },
 };
