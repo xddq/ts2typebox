@@ -28,6 +28,12 @@ export type Ts2TypeboxOptions = {
    * console.log to print to stdout.
    */
   outputStdout?: true;
+  /**
+   * Removes the comment at the beginning of the generated typebox code which
+   * mentions that the code was auto generated and should not be changed since
+   * there is a high risk that changes might get lost.
+   */
+  disableAutogenComment?: true;
 };
 
 /**
@@ -50,6 +56,7 @@ export const ts2typebox = async ({
   input,
   output,
   outputStdout,
+  disableAutogenComment,
 }: Ts2TypeboxOptions): Promise<GeneratedTypes | undefined> => {
   if (help) {
     console.log(getHelpText.run());
@@ -84,7 +91,10 @@ export const ts2typebox = async ({
     ...prettierConfig,
   });
 
-  const resultWithComment = addCommentThatCodeIsGenerated.run(result);
+  const resultWithComment =
+    disableAutogenComment === undefined
+      ? addCommentThatCodeIsGenerated.run(result)
+      : result;
 
   // output (write or stdout and return)
   if (outputStdout) {
@@ -156,6 +166,10 @@ export const getHelpText = {
     --output-stdout
        Does not generate an output file and prints the generated code to stdout
        instead. Has precedence over -o/--output.
+
+    --disable-autogen-comment
+      When used, it does not add the comment at the beginning of the generated
+      file which is stating that the code was automatically generated.
 
     Additional:
 

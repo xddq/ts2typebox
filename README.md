@@ -210,6 +210,10 @@ The following text is the output that will be displayed when you issue `ts2typeb
        Does not generate an output file and prints the generated code to stdout
        instead. Has precedence over -o/--output.
 
+    --disable-autogen-comment
+      When used, it does not add the comment at the beginning of the generated
+      file which is stating that the code was automatically generated.
+
     Additional:
 
     You can adapt the names of the generated types (as well as the names of the

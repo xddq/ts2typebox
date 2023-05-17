@@ -22,6 +22,7 @@ const main = async () => {
     input: args.input,
     output: args.output,
     outputStdout: args["output-stdout"],
+    disableAutogenComment: args["disable-autogen-comment"],
   });
 };
 

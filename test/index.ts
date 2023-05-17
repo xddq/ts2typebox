@@ -665,6 +665,58 @@ describe("programmatic cli usage", () => {
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
+  it("does not prepend comment if disableAutogenComment is true", async () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      type T = {
+        a: number;
+        b: string;
+      };
+    `;
+    const inputTypesPath = buildOsIndependentPath([__dirname, "types.ts"]);
+    fs.writeFileSync(inputTypesPath, dummyTypes);
+
+    const expectedOutputPath = buildOsIndependentPath([
+      __dirname,
+      "..",
+      "..",
+      "generated-types.ts",
+    ]);
+    // clean up output path in case the project was invoked manually before
+    shell.rm("-f", [expectedOutputPath]);
+
+    // Mocking function with itself so that we can spy on it
+    // TODO: is this the correct approach to do so?
+    const addCommentThatCodeIsGeneratedMock = mock.method(
+      addCommentThatCodeIsGenerated,
+      "run",
+      addCommentThatCodeIsGenerated.run
+    );
+    await ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      disableAutogenComment: true,
+    });
+    assert.equal(addCommentThatCodeIsGeneratedMock.mock.callCount(), 0);
+    assert.equal(fs.existsSync(expectedOutputPath), true);
+    const generatedCode = fs.readFileSync(expectedOutputPath, "utf-8");
+    // Comment should be prepended and found in the first x lines (for now
+    // first 10)
+    assert.equal(
+      generatedCode
+        .split("\n")
+        .slice(0, 10)
+        .join("\n")
+        .includes(addCommentThatCodeIsGenerated.run("")),
+      false
+    );
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputTypesPath,
+      expectedOutputPath,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
   it("prepends comment that code was auto generated", async () => {
     // prepares and writes a test types.ts file.
     const dummyTypes = `
