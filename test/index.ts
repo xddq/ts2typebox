@@ -5,7 +5,11 @@ import fs from "node:fs";
 import path from "node:path";
 import shell from "shelljs";
 import { TypeScriptToTypeBox } from "../src/typescript-to-typebox";
-import { getHelpText, ts2typebox } from "../src/programmatic-usage";
+import {
+  addCommentThatCodeIsGenerated,
+  getHelpText,
+  ts2typebox,
+} from "../src/programmatic-usage";
 
 const SHELLJS_RETURN_CODE_OK = 0;
 const buildOsIndependentPath = (foldersOrFiles: string[]) => {
@@ -661,6 +665,57 @@ describe("programmatic cli usage", () => {
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
+  it("prepends comment that code was auto generated", async () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      type T = {
+        a: number;
+        b: string;
+      };
+    `;
+    const inputTypesPath = buildOsIndependentPath([__dirname, "types.ts"]);
+    fs.writeFileSync(inputTypesPath, dummyTypes);
+
+    const expectedOutputPath = buildOsIndependentPath([
+      __dirname,
+      "..",
+      "..",
+      "generated-types.ts",
+    ]);
+    // clean up output path in case the project was invoked manually before
+    shell.rm("-f", [expectedOutputPath]);
+
+    // Mocking function with itself so that we can spy on it
+    // TODO: is this the correct approach to do so?
+    const addCommentThatCodeIsGeneratedMock = mock.method(
+      addCommentThatCodeIsGenerated,
+      "run",
+      addCommentThatCodeIsGenerated.run
+    );
+    await ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+    });
+    assert.equal(addCommentThatCodeIsGeneratedMock.mock.callCount(), 1);
+    assert.equal(fs.existsSync(expectedOutputPath), true);
+    const generatedCode = fs.readFileSync(expectedOutputPath, "utf-8");
+    // Comment should be prepended and found in the first x lines (for now
+    // first 10)
+    assert.equal(
+      generatedCode
+        .split("\n")
+        .slice(0, 10)
+        .join("\n")
+        .includes(addCommentThatCodeIsGenerated.run("")),
+      true
+    );
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputTypesPath,
+      expectedOutputPath,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
   it("generates output for given path", async () => {
     // prepares and writes a test types.ts file.
     const dummyTypes = `
@@ -695,18 +750,30 @@ describe("programmatic cli usage", () => {
         b: string;
       };
     `;
+    const expectedResult = addCommentThatCodeIsGenerated.run(`
+    import { Type, Static } from "@sinclair/typebox";
+
+    type T = Static<typeof T>;
+    const T = Type.Object({
+      a: Type.Number(),
+      b: Type.String(),
+    });`);
     const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
     const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
     fs.writeFileSync(inputAbsolute, dummyTypes);
 
     const consoleLogMock = mock.method(console, "log", () => {});
-    await ts2typebox({
+    const generatedCode = await ts2typebox({
       input: buildOsIndependentPath(["dist", "test", "types.ts"]),
       outputStdout: true,
     });
 
+    if (generatedCode === undefined) {
+      throw new Error("The return value of ts2typebox was undefined.");
+    }
     assert.equal(consoleLogMock.mock.callCount(), 1);
     assert.equal(fs.existsSync(outputAbsolute), false);
+    expectEqualIgnoreFormatting(generatedCode, expectedResult);
 
     // cleanup generated files
     const { code: returnCode } = shell.rm("-f", [
@@ -834,7 +901,7 @@ describe("programmatic cli usage", () => {
 
     // Read generated types and check for quotes
     const generatedTypes = fs.readFileSync(outputAbsolute, "utf-8");
-    const expectedResult = `
+    const expectedResult = addCommentThatCodeIsGenerated.run(`
     import { Type, Static } from "@sinclair/typebox";
 
     type TestTypeT = Static<typeof testValueT>;
@@ -842,7 +909,7 @@ describe("programmatic cli usage", () => {
 
     export type TestTypeU = Static<typeof testValueU>;
     export const testValueU = Type.Number();
-    `;
+    `);
     expectEqualIgnoreFormatting(generatedTypes, expectedResult);
     // cleanup generated files
     const { code: returnCode } = shell.rm("-f", [
