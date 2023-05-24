@@ -971,4 +971,38 @@ describe("programmatic cli usage", () => {
     ]);
     assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
   });
+  it("excludes types when --skip-type-creation is used", async () => {
+    // prepares and writes a test types.ts file.
+    const dummyTypes = `
+      export type T = {
+        a: number;
+        b: string;
+      };
+
+      type U = {
+        a: number;
+        b: string;
+      };
+      `;
+    const inputAbsolute = buildOsIndependentPath([__dirname, "types.ts"]);
+    const outputAbsolute = buildOsIndependentPath([__dirname, "output.ts"]);
+    fs.writeFileSync(inputAbsolute, dummyTypes);
+
+    await ts2typebox({
+      input: buildOsIndependentPath(["dist", "test", "types.ts"]),
+      output: buildOsIndependentPath(["dist", "test", "output.ts"]),
+    });
+
+    // check if generated file contains any "type" or "export type"
+    const generatedFile = fs.readFileSync(outputAbsolute, "utf-8");
+    const hasTypeOrExportType = generatedFile.match("/^(export )?type.*$");
+    assert.equal(hasTypeOrExportType, null);
+
+    // cleanup generated files
+    const { code: returnCode } = shell.rm("-f", [
+      inputAbsolute,
+      outputAbsolute,
+    ]);
+    assert.equal(returnCode, SHELLJS_RETURN_CODE_OK);
+  });
 });

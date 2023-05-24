@@ -23,6 +23,7 @@ const main = async () => {
     output: args.output,
     outputStdout: args["output-stdout"],
     disableAutogenComment: args["disable-autogen-comment"],
+    skipTypeCreation: args["skip-type-creation"],
   });
 };
 

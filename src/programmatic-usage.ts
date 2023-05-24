@@ -34,6 +34,12 @@ export type Ts2TypeboxOptions = {
    * there is a high risk that changes might get lost.
    */
   disableAutogenComment?: true;
+  /**
+   * Skips the creation of types in the generated file. Only creates the typebox
+   * validators containing the JSON schemas based on your typescript types. See
+   * the output of ts2typebox -h for more info.
+   */
+  skipTypeCreation?: boolean;
 };
 
 /**
@@ -57,6 +63,7 @@ export const ts2typebox = async ({
   output,
   outputStdout,
   disableAutogenComment,
+  skipTypeCreation,
 }: Ts2TypeboxOptions): Promise<GeneratedTypes | undefined> => {
   if (help) {
     console.log(getHelpText.run());
@@ -86,25 +93,29 @@ export const ts2typebox = async ({
   // TODO: perhaps validate with typebox that these are indeed valid prettier configs
   const prettierConfig =
     searchResult === null ? {} : (searchResult.config as prettier.Options);
-  const result = prettier.format(transformedTs, {
+  const resultFormatted = prettier.format(transformedTs, {
     parser: "typescript",
     ...prettierConfig,
   });
 
-  const resultWithComment =
+  const resultFiltered =
+    skipTypeCreation === undefined
+      ? resultFormatted
+      : filterTypes(resultFormatted);
+  const result =
     disableAutogenComment === undefined
-      ? addCommentThatCodeIsGenerated.run(result)
-      : result;
+      ? addCommentThatCodeIsGenerated.run(resultFiltered)
+      : resultFiltered;
 
   // output (write or stdout and return)
   if (outputStdout) {
-    console.log(resultWithComment);
-    return resultWithComment;
+    console.log(result);
+    return result;
   }
 
   fs.writeFileSync(
     process.cwd() + `/${output === undefined ? "generated-types.ts" : output}`,
-    resultWithComment,
+    result,
     {
       encoding: "utf8",
     }
@@ -112,7 +123,7 @@ export const ts2typebox = async ({
 };
 
 /**
- * Post-processing after successful type generation.
+ * Post-processing after successful code generation.
  * Transforms all values and types based on given functions.
  */
 const transformValuesAndTypes = (
@@ -132,6 +143,21 @@ const transformValuesAndTypes = (
     }
   );
   return result;
+};
+
+/**
+ * Post-processing after successful code generation.
+ * Removes each line starting with "export type" or "type".
+ */
+const filterTypes = (input: GeneratedTypes) => {
+  const result = input.replace(/^(export\s+)?type.*(\r?\n|$)/gm, "");
+  // Now we still have to adapt the import line since we would otherwise get
+  // "unused imports". For now, we simply remove the first line and append the
+  // correct one.
+  return (
+    'import { Type } from "@sinclair/typebox";\n' +
+    result.split("\n").slice(1).join("\n")
+  );
 };
 
 /**
@@ -168,8 +194,18 @@ export const getHelpText = {
        instead. Has precedence over -o/--output.
 
     --disable-autogen-comment
-      When used, it does not add the comment at the beginning of the generated
-      file which is stating that the code was automatically generated.
+       When used, it does not add the comment at the beginning of the generated
+       file which is stating that the code was automatically generated.
+
+    --skip-type-creation
+      When used, strips all types from the generated code. This can be helpful
+      if you want to use your Typescript types inside your input file (which
+      probably contains comments) as source of truth and still use the generated
+      JSON schema validators (typebox values) to validate data based on these
+      types. When using this option you probably want to also provide a custom
+      transformValue function since two same symbols can't be imported from two
+      different files. For an example take a look inside the repo under
+      ./examples/skip-type-creation.
 
     Additional:
 
