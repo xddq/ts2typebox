@@ -168,6 +168,32 @@ export const PersonSchema = Type.Object({
   age: Type.Number(),
   name: Type.String(),
 });
+
+//
+// Sounds great! But I have many comments in my Typescript types and I want to
+// use them as source of truth for my code. Can this be done..?
+// Yup! We can start with this...
+//
+
+export type Person = {
+  /**
+   * @minimum 18
+   */
+  age: number;
+  /**
+   * @description full name of the person
+   */
+  name: string;
+};
+
+//
+// And end up only generating the JSON schema/TypeBox values.
+//
+
+export const PersonSchema = Type.Object({
+  age: Type.Number({ minimum: 18 }),
+  name: Type.String({ description: "full name of the person" }),
+});
 ```
 
 To cut the slack, all the [standard
