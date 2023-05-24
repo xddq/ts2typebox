@@ -93,29 +93,29 @@ export const ts2typebox = async ({
   // TODO: perhaps validate with typebox that these are indeed valid prettier configs
   const prettierConfig =
     searchResult === null ? {} : (searchResult.config as prettier.Options);
-  const result = prettier.format(transformedTs, {
+  const resultFormatted = prettier.format(transformedTs, {
     parser: "typescript",
     ...prettierConfig,
   });
 
-  const resultWithComment =
-    disableAutogenComment === undefined
-      ? addCommentThatCodeIsGenerated.run(result)
-      : result;
   const resultFiltered =
     skipTypeCreation === undefined
-      ? resultWithComment
-      : filterTypes(resultWithComment);
+      ? resultFormatted
+      : filterTypes(resultFormatted);
+  const result =
+    disableAutogenComment === undefined
+      ? addCommentThatCodeIsGenerated.run(resultFiltered)
+      : resultFiltered;
 
   // output (write or stdout and return)
   if (outputStdout) {
-    console.log(resultFiltered);
-    return resultFiltered;
+    console.log(result);
+    return result;
   }
 
   fs.writeFileSync(
     process.cwd() + `/${output === undefined ? "generated-types.ts" : output}`,
-    resultFiltered,
+    result,
     {
       encoding: "utf8",
     }
@@ -155,7 +155,7 @@ const filterTypes = (input: GeneratedTypes) => {
   // "unused imports". For now, we simply remove the first line and append the
   // correct one.
   return (
-    'import { Type} from "@sinclair/typebox";\n' +
+    'import { Type } from "@sinclair/typebox";\n' +
     result.split("\n").slice(1).join("\n")
   );
 };
@@ -196,6 +196,16 @@ export const getHelpText = {
     --disable-autogen-comment
        When used, it does not add the comment at the beginning of the generated
        file which is stating that the code was automatically generated.
+
+    --skip-type-creation
+      When used, strips all types from the generated code. This can be helpful
+      if you want to use your Typescript types inside your input file (which
+      probably contains comments) as source of truth and still use the generated
+      JSON schema validators (typebox values) to validate data based on these
+      types. When using this option you probably want to also provide a custom
+      transformValue function since two same symbols can't be imported from two
+      different files. For an example take a look inside the repo under
+      ./examples/skip-type-creation.
 
     Additional:
 
