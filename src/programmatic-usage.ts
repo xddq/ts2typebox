@@ -34,6 +34,12 @@ export type Ts2TypeboxOptions = {
    * there is a high risk that changes might get lost.
    */
   disableAutogenComment?: true;
+  /**
+   * Skips the creation of types in the generated file. Only creates the typebox
+   * validators containing the JSON schemas based on your typescript types. See
+   * the output of ts2typebox -h for more info.
+   */
+  skipTypeCreation?: boolean;
 };
 
 /**
@@ -57,6 +63,7 @@ export const ts2typebox = async ({
   output,
   outputStdout,
   disableAutogenComment,
+  skipTypeCreation,
 }: Ts2TypeboxOptions): Promise<GeneratedTypes | undefined> => {
   if (help) {
     console.log(getHelpText.run());
@@ -95,16 +102,20 @@ export const ts2typebox = async ({
     disableAutogenComment === undefined
       ? addCommentThatCodeIsGenerated.run(result)
       : result;
+  const resultFiltered =
+    skipTypeCreation === undefined
+      ? resultWithComment
+      : filterTypes(resultWithComment);
 
   // output (write or stdout and return)
   if (outputStdout) {
-    console.log(resultWithComment);
-    return resultWithComment;
+    console.log(resultFiltered);
+    return resultFiltered;
   }
 
   fs.writeFileSync(
     process.cwd() + `/${output === undefined ? "generated-types.ts" : output}`,
-    resultWithComment,
+    resultFiltered,
     {
       encoding: "utf8",
     }
@@ -112,7 +123,7 @@ export const ts2typebox = async ({
 };
 
 /**
- * Post-processing after successful type generation.
+ * Post-processing after successful code generation.
  * Transforms all values and types based on given functions.
  */
 const transformValuesAndTypes = (
@@ -132,6 +143,21 @@ const transformValuesAndTypes = (
     }
   );
   return result;
+};
+
+/**
+ * Post-processing after successful code generation.
+ * Removes each line starting with "export type" or "type".
+ */
+const filterTypes = (input: GeneratedTypes) => {
+  const result = input.replace(/^(export\s+)?type.*(\r?\n|$)/gm, "");
+  // Now we still have to adapt the import line since we would otherwise get
+  // "unused imports". For now, we simply remove the first line and append the
+  // correct one.
+  return (
+    'import { Type} from "@sinclair/typebox";\n' +
+    result.split("\n").slice(1).join("\n")
+  );
 };
 
 /**
@@ -168,8 +194,8 @@ export const getHelpText = {
        instead. Has precedence over -o/--output.
 
     --disable-autogen-comment
-      When used, it does not add the comment at the beginning of the generated
-      file which is stating that the code was automatically generated.
+       When used, it does not add the comment at the beginning of the generated
+       file which is stating that the code was automatically generated.
 
     Additional:
 
