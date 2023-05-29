@@ -1,6 +1,6 @@
 {
   "name": "ts2typebox",
-  "version": "1.4.0-beta.0",
+  "version": "1.4.0-beta.1",
   "description": "Creates typebox JSON schemas from typescript types",
   "main": "dist/src/index.js",
   "source": "dist/src/index.js",
@@ -13,9 +13,7 @@
     "build": "tsc",
     "watch-ts": "tsc -w",
     "test": "tsc && node --test --test-reporter spec",
-    "start": "node dist/src/index.js",
-    "publish": "yarn build && npm publish",
-    "publish-beta": "yarn build && npm version prerelease --preid=beta --git-tag-version=false"
+    "start": "node dist/src/index.js"
   },
   "repository": {
     "type": "git",
