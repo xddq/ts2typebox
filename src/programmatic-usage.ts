@@ -1,5 +1,4 @@
 import * as prettier from "prettier";
-import fs from "fs";
 import { cosmiconfig } from "cosmiconfig";
 import packageJson from "../package.json";
 import { default as defaultCodeOptions } from "./codeOptions.cjs";
@@ -7,27 +6,9 @@ import { TypeScriptToTypeBox } from "./typescript-to-typebox";
 
 export type Ts2TypeboxOptions = {
   /**
-   * Makes the function print and return help text and quit. Has precendence
-   * over all other options. Uses console.log to print the help text to stdout.
+   * The given Typescript code as utf-8 encoded string.
    */
-  help?: true;
-  /**
-   * The file containing the type definitions in the current working directory.
-   * Defaults to "types.ts" if none is given.
-   */
-  input?: string;
-  /**
-   * The resulting file containing the typebox code in the current working
-   * directory. Defaults to "generated-types.ts" if none is given.
-   */
-  output?: string;
-  /**
-   * Makes the function print the result to stdout instead of writing it to a
-   * file. When using in code it makes the function also return a string
-   * containing the generated types. Has precedence over "output" argument. Uses
-   * console.log to print to stdout.
-   */
-  outputStdout?: true;
+  input: string;
   /**
    * Removes the comment at the beginning of the generated typebox code which
    * mentions that the code was auto generated and should not be changed since
@@ -58,23 +39,11 @@ type GeneratedTypes = string;
  * @throws Error
  **/
 export const ts2typebox = async ({
-  help,
   input,
-  output,
-  outputStdout,
   disableAutogenComment,
   skipTypeCreation,
-}: Ts2TypeboxOptions): Promise<GeneratedTypes | undefined> => {
-  if (help) {
-    console.log(getHelpText.run());
-    return;
-  }
-
-  const fileWithTsTypes = fs.readFileSync(
-    process.cwd() + `/${input === undefined ? "types.ts" : input}`,
-    "utf8"
-  );
-  const generatedTs = TypeScriptToTypeBox.Generate(fileWithTsTypes);
+}: Ts2TypeboxOptions): Promise<string> => {
+  const generatedTs = TypeScriptToTypeBox.Generate(input);
 
   // post-processing
   // 1. transformations
@@ -107,19 +76,7 @@ export const ts2typebox = async ({
       ? addCommentThatCodeIsGenerated.run(resultFiltered)
       : resultFiltered;
 
-  // output (write or stdout and return)
-  if (outputStdout) {
-    console.log(result);
-    return result;
-  }
-
-  fs.writeFileSync(
-    process.cwd() + `/${output === undefined ? "generated-types.ts" : output}`,
-    result,
-    {
-      encoding: "utf8",
-    }
-  );
+  return result;
 };
 
 /**
