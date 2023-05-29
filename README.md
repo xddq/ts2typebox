@@ -215,9 +215,7 @@ The following text is the output that will be displayed when you issue `ts2typeb
 
 ```
 
-    ts2typebox is a cli tool to generate typebox JSON schemas based on given
-    typescript types. The generated output is formatted based on the prettier
-    config inside your repo (or the default one, if you don't have one).
+    ts2typebox generates TypeBox code from Typescript code.
     Version: ${packageJson.version}
 
     Usage:
@@ -249,18 +247,24 @@ The following text is the output that will be displayed when you issue `ts2typeb
       When used, strips all types from the generated code. This can be helpful
       if you want to use your Typescript types inside your input file (which
       probably contains comments) as source of truth and still use the generated
-      JSON schema validators (typebox values) to validate data based on these
-      types. When using this option you probably want to also provide a custom
+      TypeBox code (schema validators) to validate data based on these types.
+      When using this option you probably want to also provide a custom
       transformValue function since two same symbols can't be imported from two
       different files. For an example take a look inside the repo under
       ./examples/skip-type-creation.
 
     Additional:
 
+    Transformations
+
     You can adapt the names of the generated types (as well as the names of the
     generated values) using custom transformation functions which take a string
     as an input and return a string as their output. These will run on each of
     the generated types and values, respectively. Please take a look inside the
     repo under ./examples/transform-value-transform-type for an example of this.
+
+    Formatting
+
+    The generated output is formatted based on the prettier config inside your
 
 ```
