@@ -1,13 +1,13 @@
 {
   "name": "ts2typebox",
-  "version": "1.3.0",
+  "version": "1.4.0-beta.1",
   "description": "Creates typebox JSON schemas from typescript types",
   "main": "dist/src/index.js",
   "source": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "bin": {
-    "ts2typebox": "dist/src/index.js",
-    "ts-to-typebox": "dist/src/index.js"
+    "ts2typebox": "dist/src/cli/index.js",
+    "ts-to-typebox": "dist/src/cli/index.js"
   },
   "scripts": {
     "build": "tsc",

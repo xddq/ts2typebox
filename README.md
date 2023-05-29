@@ -194,6 +194,10 @@ export const PersonSchema = Type.Object({
   age: Type.Number({ minimum: 18 }),
   name: Type.String({ description: "full name of the person" }),
 });
+
+//
+// For an example of programmatic usage check out the examples folder.
+//
 ```
 
 To cut the slack, all the [standard
