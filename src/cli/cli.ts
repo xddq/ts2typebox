@@ -62,9 +62,8 @@ export const runCli = async (
 export const getHelpText = {
   run: () => {
     return `
-    ts2typebox generates TypeBox code from Typescript code. The generated output
-    is formatted based on the prettier config inside your repo (or the default
-    one, if you don't have one). Version: ${packageJson.version}
+    ts2typebox generates TypeBox code from Typescript code.
+    Version: ${packageJson.version}
 
     Usage:
 
@@ -103,11 +102,18 @@ export const getHelpText = {
 
     Additional:
 
+    Transformations
+
     You can adapt the names of the generated types (as well as the names of the
     generated values) using custom transformation functions which take a string
     as an input and return a string as their output. These will run on each of
     the generated types and values, respectively. Please take a look inside the
     repo under ./examples/transform-value-transform-type for an example of this.
+
+    Formatting
+
+    The generated output is formatted based on the prettier config inside your
+    repo (or the default one, if you don't have one).
    `;
   },
 };
