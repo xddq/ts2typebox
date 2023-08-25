@@ -3,9 +3,8 @@
 </h1>
 
 Cli tool used to generate typebox JSON schemas based on given typescript types.
-Based on the initial codegen code from
-[typebox](https://github.com/sinclairzx81/typebox) by
-[sinclairzx81](https://github.com/sinclairzx81).
+Based on the awesome [@sinclair/typebox-codegen](@sinclair/typebox-codegen)
+package by [sinclairzx81](https://github.com/sinclairzx81).
 
 <p align="center">
   <a href="https://github.com/xddq/ts2typebox/blob/main/LICENSE">
@@ -200,13 +199,12 @@ export const PersonSchema = Type.Object({
 //
 ```
 
-To cut the slack, all the [standard
-types](https://github.com/sinclairzx81/typebox#standard-types) supported in
-typebox are supported by ts2typebox. For hands on examples, you can follow the
-simple snippets stored inside the
+For hands on examples, you can follow the simple snippets stored inside the
 [examples](https://github.com/xddq/ts2typebox/tree/main/examples) folder. For a
 more complete set of examples (every feature is tested) you can take a look at
-the tests inside the repo.
+the tests inside this repo for the programmatic usage and inside the tests in
+[@sinclair/typebox-codegen](https://github.com/sinclairzx81/typebox-codegen)
+repo for the typegen.
 
 ## cli usage
 
