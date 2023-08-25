@@ -2,9 +2,9 @@
     ts2typebox
 </h1>
 
-Cli tool used to generate typebox JSON schemas based on given typescript types.
-Based on the awesome [@sinclair/typebox-codegen](@sinclair/typebox-codegen)
-package by [sinclairzx81](https://github.com/sinclairzx81).
+<p align="center">
+Creating TypeBox code from Typescript types.
+</p>
 
 <p align="center">
   <a href="https://github.com/xddq/ts2typebox/blob/main/LICENSE">
@@ -17,6 +17,10 @@ package by [sinclairzx81](https://github.com/sinclairzx81).
     <img src="https://github.com/xddq/ts2typebox/actions/workflows/buildAndTest.yaml/badge.svg" alt="State of Github Action" />
   </a>
 </p>
+
+Cli tool which leverages the awesome
+[typebox-codegen](https://github.com/sinclairzx81/typebox-codegen) package by
+[sinclairzx81](https://github.com/sinclairzx81).
 
 ## Installation
 
