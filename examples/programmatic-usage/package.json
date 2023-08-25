@@ -4,6 +4,9 @@
   "scripts": {
     "start": "ts-node ./index.ts"
   },
+  "dependencies": {
+    "@sinclair/typebox-codegen": "0.8.6"
+  },
   "devDependencies": {
     "ts-node": "10.9.1"
   }

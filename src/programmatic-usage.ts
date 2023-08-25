@@ -2,7 +2,7 @@ import * as prettier from "prettier";
 import { cosmiconfig } from "cosmiconfig";
 import packageJson from "../package.json";
 import { default as defaultCodeOptions } from "./codeOptions.cjs";
-import { TypeScriptToTypeBox } from "./typescript-to-typebox";
+import * as codegen from "@sinclair/typebox-codegen";
 
 export type Ts2TypeboxOptions = {
   /**
@@ -43,7 +43,7 @@ export const ts2typebox = async ({
   disableAutogenComment,
   skipTypeCreation,
 }: Ts2TypeboxOptions): Promise<string> => {
-  const generatedTs = TypeScriptToTypeBox.Generate(input);
+  const generatedTs = codegen.TypeScriptToTypeBox.Generate(input);
 
   // post-processing
   // 1. transformations
