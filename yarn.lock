@@ -43,7 +43,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinclair/typebox@npm:0.31.3, @sinclair/typebox@npm:^0.31.0":
+"@sinclair/typebox@npm:0.32.31":
+  version: 0.32.31
+  resolution: "@sinclair/typebox@npm:0.32.31"
+  checksum: 81988aaea8a9d9cffa501e7a1290fb30464b7551330c6e016dc8787a6be97db839bc134bd0d1ae5b35b66da5c3772a6c7626a63dcc9de1503b51b6b0391ac331
+  languageName: node
+  linkType: hard
+
+"@sinclair/typebox@npm:^0.31.0":
   version: 0.31.3
   resolution: "@sinclair/typebox@npm:0.31.3"
   checksum: 8cd8187f6e1568255616d6a721022d6dfefa92fd7d8ff3a2f0b22adfe63ded8458f4c504e8e98c25f63cd148a62b248589eef02a63e360687d3b69bca222fc3d
@@ -509,7 +516,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ts2typebox@workspace:."
   dependencies:
-    "@sinclair/typebox": 0.31.3
+    "@sinclair/typebox": 0.32.31
     "@sinclair/typebox-codegen": 0.8.6
     "@types/minimist": 1.2.2
     "@types/node": 18.16.0
@@ -521,6 +528,8 @@ __metadata:
     shelljs: 0.8.5
     tsconfig-paths: 4.1.2
     typescript: 5.2.2
+  peerDependencies:
+    "@sinclair/typebox": ^0.32.31
   bin:
     ts-to-typebox: dist/src/cli/index.js
     ts2typebox: dist/src/cli/index.js
