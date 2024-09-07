@@ -1,4 +1,4 @@
-# 1.7.0
+# 1.6.1
 
 - avoid using fixed dependency versions 
 
