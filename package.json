@@ -1,6 +1,6 @@
 {
   "name": "ts2typebox",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Creates TypeBox code from Typescript code",
   "main": "dist/src/index.js",
   "source": "dist/src/index.js",
