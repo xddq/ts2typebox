@@ -32,14 +32,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinclair/typebox-codegen@npm:0.8.6":
-  version: 0.8.6
-  resolution: "@sinclair/typebox-codegen@npm:0.8.6"
+"@sinclair/typebox-codegen@npm:^0.8.6":
+  version: 0.8.13
+  resolution: "@sinclair/typebox-codegen@npm:0.8.13"
   dependencies:
-    "@sinclair/typebox": ^0.31.0
+    "@sinclair/typebox": ^0.31.28
     prettier: ^2.8.7
     typescript: ^5.1.6
-  checksum: e380d191b2165e81d60eab30479a1fd4ff7ba779d3fc2375db6682a70e286eaf56778abcf5fe2e07496d337cf4ad84c9c2783079c5aabeb0d0bf6144b3ef061a
+  checksum: 5102ed703e1917acf2ccadcb2de7db593294eb24065592f16914769bda17fbaba1feb41dfd042db0b65aa293299ecdafd9e7f67344bafca01d190c0914f276ce
   languageName: node
   linkType: hard
 
@@ -50,10 +50,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinclair/typebox@npm:^0.31.0":
-  version: 0.31.3
-  resolution: "@sinclair/typebox@npm:0.31.3"
-  checksum: 8cd8187f6e1568255616d6a721022d6dfefa92fd7d8ff3a2f0b22adfe63ded8458f4c504e8e98c25f63cd148a62b248589eef02a63e360687d3b69bca222fc3d
+"@sinclair/typebox@npm:^0.31.28":
+  version: 0.31.28
+  resolution: "@sinclair/typebox@npm:0.31.28"
+  checksum: 0dd8e11bb608a28f8db6aa6166a354453126249e5bbf4442654ba1c520bd10a55d0beb4cb294f4834a7619efa833a870a31902933a46548bfc24d0e0710576d2
   languageName: node
   linkType: hard
 
@@ -186,15 +186,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cosmiconfig@npm:8.1.3":
-  version: 8.1.3
-  resolution: "cosmiconfig@npm:8.1.3"
+"cosmiconfig@npm:^8.1.3":
+  version: 8.3.6
+  resolution: "cosmiconfig@npm:8.3.6"
   dependencies:
-    import-fresh: ^3.2.1
+    import-fresh: ^3.3.0
     js-yaml: ^4.1.0
-    parse-json: ^5.0.0
+    parse-json: ^5.2.0
     path-type: ^4.0.0
-  checksum: b3d277bc3a8a9e649bf4c3fc9740f4c52bf07387481302aa79839f595045368903bf26ea24a8f7f7b8b180bf46037b027c5cb63b1391ab099f3f78814a147b2b
+  peerDependencies:
+    typescript: ">=4.9.5"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: dc339ebea427898c9e03bf01b56ba7afbac07fc7d2a2d5a15d6e9c14de98275a9565da949375aee1809591c152c0a3877bb86dbeaf74d5bd5aaa79955ad9e7a0
   languageName: node
   linkType: hard
 
@@ -258,7 +263,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"import-fresh@npm:^3.2.1":
+"import-fresh@npm:^3.3.0":
   version: 3.3.0
   resolution: "import-fresh@npm:3.3.0"
   dependencies:
@@ -358,7 +363,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimist@npm:1.2.8, minimist@npm:^1.2.6":
+"minimist@npm:^1.2.6, minimist@npm:^1.2.8":
   version: 1.2.8
   resolution: "minimist@npm:1.2.8"
   checksum: 75a6d645fb122dad29c06a7597bddea977258957ed88d7a6df59b5cd3fe4a527e253e9bbf2e783e4b73657f9098b96a5fe96ab8a113655d4109108577ecf85b0
@@ -383,7 +388,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"parse-json@npm:^5.0.0":
+"parse-json@npm:^5.2.0":
   version: 5.2.0
   resolution: "parse-json@npm:5.2.0"
   dependencies:
@@ -413,15 +418,6 @@ __metadata:
   version: 4.0.0
   resolution: "path-type@npm:4.0.0"
   checksum: 5b1e2daa247062061325b8fdbfd1fb56dde0a448fb1455453276ea18c60685bdad23a445dc148cf87bc216be1573357509b7d4060494a6fd768c7efad833ee45
-  languageName: node
-  linkType: hard
-
-"prettier@npm:2.8.7":
-  version: 2.8.7
-  resolution: "prettier@npm:2.8.7"
-  bin:
-    prettier: bin-prettier.js
-  checksum: fdc8f2616f099f5f0d685907f4449a70595a0fc1d081a88919604375989e0d5e9168d6121d8cc6861f21990b31665828e00472544d785d5940ea08a17660c3a6
   languageName: node
   linkType: hard
 
@@ -517,17 +513,17 @@ __metadata:
   resolution: "ts2typebox@workspace:."
   dependencies:
     "@sinclair/typebox": 0.32.31
-    "@sinclair/typebox-codegen": 0.8.6
+    "@sinclair/typebox-codegen": ^0.8.6
     "@types/minimist": 1.2.2
     "@types/node": 18.16.0
     "@types/prettier": 2.7.2
     "@types/shelljs": 0.8.12
-    cosmiconfig: 8.1.3
-    minimist: 1.2.8
-    prettier: 2.8.7
+    cosmiconfig: ^8.1.3
+    minimist: ^1.2.8
+    prettier: ^2.8.7
     shelljs: 0.8.5
     tsconfig-paths: 4.1.2
-    typescript: 5.2.2
+    typescript: ^5.2.2
   peerDependencies:
     "@sinclair/typebox": ^0.32.31
   bin:
@@ -547,7 +543,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.2.2, typescript@npm:^5.1.6":
+"typescript@npm:^5.1.6":
   version: 5.2.2
   resolution: "typescript@npm:5.2.2"
   bin:
@@ -557,13 +553,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@5.2.2#~builtin<compat/typescript>, typescript@patch:typescript@^5.1.6#~builtin<compat/typescript>":
+"typescript@npm:^5.2.2":
+  version: 5.5.4
+  resolution: "typescript@npm:5.5.4"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: b309040f3a1cd91c68a5a58af6b9fdd4e849b8c42d837b2c2e73f9a4f96a98c4f1ed398a9aab576ee0a4748f5690cf594e6b99dbe61de7839da748c41e6d6ca8
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^5.1.6#~builtin<compat/typescript>":
   version: 5.2.2
   resolution: "typescript@patch:typescript@npm%3A5.2.2#~builtin<compat/typescript>::version=5.2.2&hash=77c9e2"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 07106822b4305de3f22835cbba949a2b35451cad50888759b6818421290ff95d522b38ef7919e70fb381c5fe9c1c643d7dea22c8b31652a717ddbd57b7f4d554
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^5.2.2#~builtin<compat/typescript>":
+  version: 5.5.4
+  resolution: "typescript@patch:typescript@npm%3A5.5.4#~builtin<compat/typescript>::version=5.5.4&hash=77c9e2"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: fc52962f31a5bcb716d4213bef516885e4f01f30cea797a831205fc9ef12b405a40561c40eae3127ab85ba1548e7df49df2bcdee6b84a94bfbe3a0d7eff16b14
   languageName: node
   linkType: hard
 
