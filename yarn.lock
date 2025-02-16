@@ -32,28 +32,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinclair/typebox-codegen@npm:^0.8.6":
-  version: 0.8.13
-  resolution: "@sinclair/typebox-codegen@npm:0.8.13"
+"@sinclair/typebox-codegen@npm:^0.10.5":
+  version: 0.10.5
+  resolution: "@sinclair/typebox-codegen@npm:0.10.5"
   dependencies:
-    "@sinclair/typebox": ^0.31.28
+    "@sinclair/typebox": ^0.33.1
     prettier: ^2.8.7
-    typescript: ^5.1.6
-  checksum: 5102ed703e1917acf2ccadcb2de7db593294eb24065592f16914769bda17fbaba1feb41dfd042db0b65aa293299ecdafd9e7f67344bafca01d190c0914f276ce
+    typescript: ^5.4.5
+  checksum: e5917e1ac80b5761b848cb8d6f890bffcdf3eb5f9af92d36e3d37ce9ce0e1f051f1f34214b117111180d247ffb8cb2e5fa53b947a9ae0a8ea6fac965efc6a5db
   languageName: node
   linkType: hard
 
-"@sinclair/typebox@npm:0.32.31":
-  version: 0.32.31
-  resolution: "@sinclair/typebox@npm:0.32.31"
-  checksum: 81988aaea8a9d9cffa501e7a1290fb30464b7551330c6e016dc8787a6be97db839bc134bd0d1ae5b35b66da5c3772a6c7626a63dcc9de1503b51b6b0391ac331
+"@sinclair/typebox@npm:0.34.25":
+  version: 0.34.25
+  resolution: "@sinclair/typebox@npm:0.34.25"
+  checksum: 72a1d04a70e28fffc54d4241baee4cd0ba3338de0ed3c40a1eca5b3be29be4be8ea8119cef4e64acacf1a679f6504ea747616eec042514455fadc709762b85c7
   languageName: node
   linkType: hard
 
-"@sinclair/typebox@npm:^0.31.28":
-  version: 0.31.28
-  resolution: "@sinclair/typebox@npm:0.31.28"
-  checksum: 0dd8e11bb608a28f8db6aa6166a354453126249e5bbf4442654ba1c520bd10a55d0beb4cb294f4834a7619efa833a870a31902933a46548bfc24d0e0710576d2
+"@sinclair/typebox@npm:^0.33.1":
+  version: 0.33.22
+  resolution: "@sinclair/typebox@npm:0.33.22"
+  checksum: d87c623b2b853a2684edda8d8a9f842867a9e22d0120142b8c82d0c7fc97ac0e5d95027c2f14497ccce0bd101b706645d04acd602b04c0c706002f57f51302e3
   languageName: node
   linkType: hard
 
@@ -74,10 +74,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/minimist@npm:1.2.2":
-  version: 1.2.2
-  resolution: "@types/minimist@npm:1.2.2"
-  checksum: b8da83c66eb4aac0440e64674b19564d9d86c80ae273144db9681e5eeff66f238ade9515f5006ffbfa955ceff8b89ad2bd8ec577d7caee74ba101431fb07045d
+"@types/minimist@npm:1.2.5":
+  version: 1.2.5
+  resolution: "@types/minimist@npm:1.2.5"
+  checksum: 477047b606005058ab0263c4f58097136268007f320003c348794f74adedc3166ffc47c80ec3e94687787f2ab7f4e72c468223946e79892cf0fd9e25e9970a90
   languageName: node
   linkType: hard
 
@@ -102,13 +102,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/shelljs@npm:0.8.12":
-  version: 0.8.12
-  resolution: "@types/shelljs@npm:0.8.12"
+"@types/shelljs@npm:0.8.15":
+  version: 0.8.15
+  resolution: "@types/shelljs@npm:0.8.15"
   dependencies:
     "@types/glob": ~7.2.0
     "@types/node": "*"
-  checksum: ffb47809abef9ee53f900c6b49adb1382d1d78af7f8b50dd474534e3f73127bc4a3849394e4c9de16481cd50203b12464141b4b49d48e88ba6b4c7cc2c85948c
+  checksum: 94939421c6c83d3075e1c56bf940eb3c34567c6b2ac0b553ec81de7f4c7e7cdfc729117d821c22418d64c45fcd4f96a6ec7ae21ed0d7a80e3e9a008672dde35f
   languageName: node
   linkType: hard
 
@@ -186,20 +186,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cosmiconfig@npm:^8.1.3":
-  version: 8.3.6
-  resolution: "cosmiconfig@npm:8.3.6"
+"cosmiconfig@npm:^9.0.0":
+  version: 9.0.0
+  resolution: "cosmiconfig@npm:9.0.0"
   dependencies:
+    env-paths: ^2.2.1
     import-fresh: ^3.3.0
     js-yaml: ^4.1.0
     parse-json: ^5.2.0
-    path-type: ^4.0.0
   peerDependencies:
     typescript: ">=4.9.5"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: dc339ebea427898c9e03bf01b56ba7afbac07fc7d2a2d5a15d6e9c14de98275a9565da949375aee1809591c152c0a3877bb86dbeaf74d5bd5aaa79955ad9e7a0
+  checksum: a30c424b53d442ea0bdd24cb1b3d0d8687c8dda4a17ab6afcdc439f8964438801619cdb66e8e79f63b9caa3e6586b60d8bab9ce203e72df6c5e80179b971fe8f
+  languageName: node
+  linkType: hard
+
+"env-paths@npm:^2.2.1":
+  version: 2.2.1
+  resolution: "env-paths@npm:2.2.1"
+  checksum: 65b5df55a8bab92229ab2b40dad3b387fad24613263d103a97f91c9fe43ceb21965cd3392b1ccb5d77088021e525c4e0481adb309625d0cb94ade1d1fb8dc17e
   languageName: node
   linkType: hard
 
@@ -414,13 +421,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"path-type@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "path-type@npm:4.0.0"
-  checksum: 5b1e2daa247062061325b8fdbfd1fb56dde0a448fb1455453276ea18c60685bdad23a445dc148cf87bc216be1573357509b7d4060494a6fd768c7efad833ee45
-  languageName: node
-  linkType: hard
-
 "prettier@npm:^2.8.7":
   version: 2.8.8
   resolution: "prettier@npm:2.8.8"
@@ -512,74 +512,54 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ts2typebox@workspace:."
   dependencies:
-    "@sinclair/typebox": 0.32.31
-    "@sinclair/typebox-codegen": ^0.8.6
-    "@types/minimist": 1.2.2
+    "@sinclair/typebox": 0.34.25
+    "@sinclair/typebox-codegen": ^0.10.5
+    "@types/minimist": 1.2.5
     "@types/node": 18.16.0
     "@types/prettier": 2.7.2
-    "@types/shelljs": 0.8.12
-    cosmiconfig: ^8.1.3
+    "@types/shelljs": 0.8.15
+    cosmiconfig: ^9.0.0
     minimist: ^1.2.8
     prettier: ^2.8.7
     shelljs: 0.8.5
-    tsconfig-paths: 4.1.2
-    typescript: ^5.2.2
+    tsconfig-paths: 4.2.0
+    typescript: ^5.7.3
   peerDependencies:
-    "@sinclair/typebox": ^0.32.31
+    "@sinclair/typebox": ^0.34.25
   bin:
     ts-to-typebox: dist/src/cli/index.js
     ts2typebox: dist/src/cli/index.js
   languageName: unknown
   linkType: soft
 
-"tsconfig-paths@npm:4.1.2":
-  version: 4.1.2
-  resolution: "tsconfig-paths@npm:4.1.2"
+"tsconfig-paths@npm:4.2.0":
+  version: 4.2.0
+  resolution: "tsconfig-paths@npm:4.2.0"
   dependencies:
     json5: ^2.2.2
     minimist: ^1.2.6
     strip-bom: ^3.0.0
-  checksum: 3d9151ecea139594e25618717de15769ab9f38f8e6d510ac16e592b23e7f7105ea13cec5694c3de7e132c98277b775e18edd1651964164ee6d75737c408494cc
+  checksum: 28c5f7bbbcabc9dabd4117e8fdc61483f6872a1c6b02a4b1c4d68c5b79d06896c3cc9547610c4c3ba64658531caa2de13ead1ea1bf321c7b53e969c4752b98c7
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.1.6":
-  version: 5.2.2
-  resolution: "typescript@npm:5.2.2"
+"typescript@npm:^5.4.5, typescript@npm:^5.7.3":
+  version: 5.7.3
+  resolution: "typescript@npm:5.7.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 7912821dac4d962d315c36800fe387cdc0a6298dba7ec171b350b4a6e988b51d7b8f051317786db1094bd7431d526b648aba7da8236607febb26cf5b871d2d3c
+  checksum: 6c38b1e989918e576f0307e6ee013522ea480dfce5f3ca85c9b2d8adb1edeffd37f4f30cd68de0c38a44563d12ba922bdb7e36aa2dac9c51de5d561e6e9a2e9c
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.2.2":
-  version: 5.5.4
-  resolution: "typescript@npm:5.5.4"
+"typescript@patch:typescript@^5.4.5#~builtin<compat/typescript>, typescript@patch:typescript@^5.7.3#~builtin<compat/typescript>":
+  version: 5.7.3
+  resolution: "typescript@patch:typescript@npm%3A5.7.3#~builtin<compat/typescript>::version=5.7.3&hash=77c9e2"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: b309040f3a1cd91c68a5a58af6b9fdd4e849b8c42d837b2c2e73f9a4f96a98c4f1ed398a9aab576ee0a4748f5690cf594e6b99dbe61de7839da748c41e6d6ca8
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@^5.1.6#~builtin<compat/typescript>":
-  version: 5.2.2
-  resolution: "typescript@patch:typescript@npm%3A5.2.2#~builtin<compat/typescript>::version=5.2.2&hash=77c9e2"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 07106822b4305de3f22835cbba949a2b35451cad50888759b6818421290ff95d522b38ef7919e70fb381c5fe9c1c643d7dea22c8b31652a717ddbd57b7f4d554
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@^5.2.2#~builtin<compat/typescript>":
-  version: 5.5.4
-  resolution: "typescript@patch:typescript@npm%3A5.5.4#~builtin<compat/typescript>::version=5.5.4&hash=77c9e2"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: fc52962f31a5bcb716d4213bef516885e4f01f30cea797a831205fc9ef12b405a40561c40eae3127ab85ba1548e7df49df2bcdee6b84a94bfbe3a0d7eff16b14
+  checksum: 633cd749d6cd7bc842c6b6245847173bba99742a60776fae3c0fbcc0d1733cd51a733995e5f4dadd8afb0e64e57d3c7dbbeae953a072ee303940eca69e22f311
   languageName: node
   linkType: hard
 
