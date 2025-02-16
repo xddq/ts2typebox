@@ -1,6 +1,10 @@
+# 1.6.2
+
+- Updated code generation to use `CloneType` instead of deprecated `TypeClone` from @sinclair/typebox >0.34.35
+
 # 1.6.1
 
-- stop using fixed dependency versions so users of this package can e.g. use the latest typescript version. See https://github.com/xddq/ts2typebox/pull/27 
+- stop using fixed dependency versions so users of this package can e.g. use the latest typescript version. See https://github.com/xddq/ts2typebox/pull/27
 
 # 1.6.0
 
