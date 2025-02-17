@@ -1,6 +1,6 @@
 # 1.6.2
 
-- Updated code generation to use `CloneType` instead of deprecated `TypeClone` from @sinclair/typebox >0.34.35
+- Updated code generation to use `CloneType` instead of deprecated `TypeClone`. New minimum versions: @sinclair/typebox ^0.34.35 and @typebox/codegen ^0.10.5
 
 # 1.6.1
 
